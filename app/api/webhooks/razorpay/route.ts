@@ -8,9 +8,9 @@ export const runtime = "nodejs";
 type RazorpayEvent = {
   event?: string;
   payload?: {
-    payment?: { entity?: { id?: string; order_id?: string; amount?: number; currency?: string; status?: string } };
+    payment?: { entity?: { id?: string; order_id?: string; amount?: number; currency?: string; status?: string; notes?: { app?: string } } };
     payment_link?: { entity?: { id?: string; status?: string; reference_id?: string; notes?: { application_id?: string } } };
-    refund?: { entity?: { id?: string; status?: string } };
+    refund?: { entity?: { id?: string; status?: string; notes?: { app?: string } } };
   };
 };
 
@@ -39,6 +39,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ accepted: true, ignored: true });
   }
   const payment = event.payload?.payment?.entity;
+  if (payment?.notes?.app !== "lunchbox") return NextResponse.json({ accepted: true, ignored: true });
   if (!payment?.id || !payment.order_id || payment.status !== "captured" || payment.currency !== "INR" || !Number.isInteger(payment.amount)) {
     return NextResponse.json({ error: "Invalid captured-payment payload." }, { status: 400 });
   }

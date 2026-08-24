@@ -20,6 +20,8 @@ type IncomingOrder = {
   audience?: unknown;
   items?: unknown;
   freeMeals?: unknown;
+  amount?: unknown;
+  total?: unknown;
 };
 
 export async function POST(request: Request) {

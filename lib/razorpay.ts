@@ -24,7 +24,7 @@ export async function createFranchisePaymentLink(input: { applicationId: string;
 
 export function paymentCheckoutDetails(id: string, amountInr: number) {
   if (!keyId) throw new Error("Razorpay is not configured.");
-  return { id, amount: Math.round(amountInr * 100), currency: "INR", keyId };
+  return { id, amount: amountInr * 100, currency: "INR", keyId };
 }
 
 function authorization() {
@@ -36,7 +36,7 @@ export async function createPaymentOrder(appOrderId: string, amountInr: number) 
   const response = await fetch("https://api.razorpay.com/v1/orders", {
     method: "POST",
     headers: { Authorization: authorization(), "Content-Type": "application/json" },
-    body: JSON.stringify({ amount: Math.round(amountInr * 100), currency: "INR", receipt: appOrderId.slice(0, 40), notes: { app_order_id: appOrderId } }),
+    body: JSON.stringify({ amount: amountInr * 100, currency: "INR", receipt: appOrderId.slice(0, 40), notes: { app: "lunchbox", app_order_id: appOrderId } }),
   });
   const data = await response.json() as { id?: string; amount?: number; currency?: string; error?: { description?: string } };
   if (!response.ok || !data.id) throw new Error(data.error?.description || "Unable to initialize payment.");
