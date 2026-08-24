@@ -2,7 +2,6 @@ substitutions:
   _REGION: asia-south1
   _SERVICE: lunchbox
   _REPOSITORY: lunchbox
-  _GOOGLE_MAPS_BROWSER_SECRET: google-maps-browser-api-key
 
 steps:
   - id: test
@@ -39,7 +38,6 @@ steps:
       - --platform=managed
       - --allow-unauthenticated
       - --update-env-vars=GCP_PROJECT_ID=${PROJECT_ID},DEFAULT_DAILY_CAPACITY=1500,FRANCHISE_NETWORK_TARGET=198,FRANCHISE_DAILY_STUDENT_CAPACITY=1500
-      - --update-secrets=GOOGLE_MAPS_BROWSER_API_KEY=${_GOOGLE_MAPS_BROWSER_SECRET}:latest
 
 images:
   - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_SERVICE}:${BUILD_ID}
