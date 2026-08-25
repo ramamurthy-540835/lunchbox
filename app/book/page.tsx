@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { DEMO_CONTEXT } from "@/lib/book/demo-config";
 import { DEMO_TIMELINE, reducedMotionTransform } from "@/lib/book/timeline";
 import { meals } from "@/lib/meals";
 import { LeafArt } from "@/components/book/art/leaf";
@@ -40,8 +39,13 @@ export default function BookDemoPage() {
   const cameraStyle = { transform: reducedMotionTransform(reduced) };
   const daysLabel = useMemo(() => selectedDays.map((index) => days[index]?.day.slice(0, 3)).join(" · "), [days, selectedDays]);
   function reset() { setBeat("open"); setSelectedDays([0, 1, 2, 3, 4]); }
+  function continueToCheckout() {
+    const cart = Object.fromEntries(selectedDays.map((index) => [days[index].id, 1]));
+    sessionStorage.setItem("lunchbox_checkout", JSON.stringify({ cart, audience: "school" }));
+    window.location.assign("/checkout");
+  }
   function tiffinTap() { taps.current += 1; if (resetTimer.current) window.clearTimeout(resetTimer.current); resetTimer.current = window.setTimeout(() => { taps.current = 0; }, 700); if (taps.current >= 3) { taps.current = 0; reset(); } }
-  function advanceBeat() { if (beat === "open") setBeat("fill"); else if (beat === "fill") setBeat("seal"); else reset(); }
+  function advanceBeat() { if (beat === "open") setBeat("fill"); else if (beat === "fill") continueToCheckout(); else reset(); }
   function toggleDay(index: number) { setSelectedDays((current) => current.includes(index) ? current.filter((day) => day !== index) : [...current, index].sort()); }
 
   if (process.env.NEXT_PUBLIC_BOOKING_MODE === "full") return <FullBookingPage />;
@@ -54,7 +58,6 @@ export default function BookDemoPage() {
       </div>
     </div>
     {beat === "open" && <section className={styles.copy}><h1>A school lunch worth opening.</h1><button onClick={(event) => { event.stopPropagation(); advanceBeat(); }}>Open the box</button></section>}
-    {beat === "fill" && <section className={styles.fillControls} onClick={(event) => event.stopPropagation()}><h1>What your child gets.</h1><p className={styles.composition}>1 chapati, 1 bowl of rice, sambar, curd, 2 vegetable curries, 1 serving of channa, 1 appalam.</p><div className={styles.week} aria-label="Choose days">{days.map((meal, index) => <button className={selectedDays.includes(index) ? styles.daySelected : ""} key={meal.id} onClick={() => toggleDay(index)}><span>{meal.day.slice(0, 3)}</span><i aria-hidden="true"><LeafArt /></i></button>)}</div>{priceError && <p role="alert" className={styles.error}>{priceError}</p>}<div className={styles.bill}><span>{daysLabel || "Choose a day"}</span><b>{price ? `₹${price.totalInr}` : "Loading…"}</b></div><button disabled={!selectedDays.length || !price} onClick={() => setBeat("seal")}>Book these days</button></section>}
-    {beat === "seal" && <section className={styles.sealCopy} onClick={(event) => event.stopPropagation()}><h1>Booked.</h1><div className={styles.label}><strong>LunchBox</strong><span>{DEMO_CONTEXT.studentFirstName} · {DEMO_CONTEXT.school} · pilot placeholder</span><span>{daysLabel}</span><b>{price ? `₹${price.totalInr}` : ""}</b></div><p>The leaf folds into the tiffin. The coordinator has the booking details.</p><button onClick={reset}>Run it again</button></section>}
+    {beat === "fill" && <section className={styles.fillControls} onClick={(event) => event.stopPropagation()}><h1>What your child gets.</h1><p className={styles.composition}>1 chapati, 1 bowl of rice, sambar, curd, 2 vegetable curries, 1 serving of channa, 1 appalam.</p><div className={styles.week} aria-label="Choose days">{days.map((meal, index) => <button className={selectedDays.includes(index) ? styles.daySelected : ""} key={meal.id} onClick={() => toggleDay(index)}><span>{meal.day.slice(0, 3)}</span><i aria-hidden="true"><LeafArt /></i></button>)}</div>{priceError && <p role="status" className={styles.error}>Your final total will be calculated securely at checkout.</p>}<div className={styles.bill}><span>{daysLabel || "Choose a day"}</span><b>{price ? `₹${price.totalInr}` : "Calculated at checkout"}</b></div><button disabled={!selectedDays.length} onClick={continueToCheckout}>Continue to secure checkout</button></section>}
   </main>;
 }

@@ -2,9 +2,6 @@
 
 import InstallAppButton from "@/components/InstallAppButton";
 import AudienceCategorySelector from "@/components/AudienceCategorySelector";
-import FranchiseLocationDashboard from "@/components/FranchiseLocationDashboard";
-import FranchiseNetworkExplorer from "@/components/franchises/FranchiseNetworkExplorer";
-import type { Franchise } from "@/lib/franchises";
 import { useEffect, useMemo, useState } from "react";
 import { cities as fallbackCities, gradePlans as fallbackGradePlans, mealNutrition, meals as fallbackMeals, schools as fallbackSchools, type GradePlan, type Meal, type School } from "@/lib/meals";
 import { mealAudiencePrice, type MealAudience } from "@/lib/pricing";
@@ -15,8 +12,6 @@ export default function Home() {
   const [meals, setMeals] = useState<Meal[]>(fallbackMeals);
   const [gradePlans, setGradePlans] = useState<Record<string, GradePlan>>(fallbackGradePlans);
   const [catalogError, setCatalogError] = useState("");
-  const [franchises, setFranchises] = useState<Franchise[]>([]);
-  const [franchiseError, setFranchiseError] = useState("");
   const [city, setCity] = useState(fallbackCities[0]);
   const [schoolId, setSchoolId] = useState(fallbackSchools[0]?.id || "request");
   const [gradeBand, setGradeBand] = useState(Object.keys(fallbackGradePlans)[0]);
@@ -40,7 +35,6 @@ export default function Home() {
       });
     }).catch((error) => setCatalogError(error instanceof Error ? error.message : "Catalogue unavailable"));
   }, []);
-  useEffect(() => { fetch("/api/franchises").then(async (response) => { if (!response.ok) throw new Error("Franchise details unavailable"); return response.json(); }).then((data) => { setFranchises(data.franchises || []); setFranchiseError(""); }).catch((error) => setFranchiseError(error instanceof Error ? error.message : "Franchise details unavailable")); }, []);
 
   const itemCount = Object.values(cart).reduce((sum, count) => sum + count, 0);
   const unitPrice = mealAudiencePrice(audience);
@@ -49,7 +43,6 @@ export default function Home() {
     [cart, meals, unitPrice],
   );
 
-  const todayMeal = meals[new Date().getDay() % meals.length] || meals[0];
   function addMeal(id: string) {
     setCart((current) => ({ ...current, [id]: (current[id] || 0) + 1 }));
     setCartOpen(true);
@@ -80,7 +73,6 @@ export default function Home() {
           <a href="#menu">Menu</a>
           <a href="#standards">Our promise</a>
           <a href="#how">How it works</a>
-          <a href="/franchise">Franchise</a>
         </nav>
         <InstallAppButton />
         <button className="cart-button" onClick={() => setCartOpen(true)}>
@@ -137,8 +129,6 @@ export default function Home() {
         <div><span>2</span><b>Tell us the school</b><p>We group deliveries by campus and lunch break.</p></div>
         <div><span>3</span><b>We deliver fresh</b><p>Every pack arrives sealed, named and on time.</p></div>
       </section>
-      <section className="franchise-section" id="franchises"><div className="section-heading"><div><span className="kicker">TAMIL NADU FRANCHISE DIRECTORY</span><h2>Explore the LunchBox partner network.</h2></div><p>Compare approved franchise partners across Chennai, Madurai, Trichy, and Coimbatore.</p></div><FranchiseNetworkExplorer />{franchiseError && <p className="franchise-message" role="alert">{franchiseError}</p>}{!franchiseError && <FranchiseLocationDashboard franchises={franchises} />}</section>
-
       <footer><a className="brand" href="#top"><span className="brand-mark">L</span><span>Lunch<span>Box</span></span></a><p>Made with care for growing minds in Tamil Nadu.</p><small>Menu is illustrative. Final meal plans should be approved by a qualified pediatric dietitian and the participating school.</small></footer>
 
       {cartOpen && <div className="overlay" onMouseDown={() => setCartOpen(false)}><aside className="drawer" onMouseDown={(event) => event.stopPropagation()}>
