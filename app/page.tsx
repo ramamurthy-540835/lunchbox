@@ -62,6 +62,10 @@ export default function Home() {
     window.location.assign("/checkout");
   }
 
+  function choosePlan() {
+    document.getElementById("menu")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   return (
     <main>
       <header className="topbar">
@@ -88,7 +92,7 @@ export default function Home() {
           <h1>Big nutrition for<br /><em>bright young minds.</em></h1>
           <p>Freshly cooked, balanced school lunches designed for growing students from 6th to 12th standard.</p>
           <div className="hero-actions">
-            <button className="primary-button" onClick={() => window.location.assign("/book")}>Order ₹{unitPrice} Lunch <span>→</span></button>
+            <button className="primary-button" onClick={choosePlan}>Choose ₹{unitPrice} Lunch <span>→</span></button>
             <div className="parent-proof"><b>4.9 ★</b><span>Loved by 2,000+ parents</span></div>
           </div>
         </div>

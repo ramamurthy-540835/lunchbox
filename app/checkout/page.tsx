@@ -152,7 +152,7 @@ export default function CheckoutPage() {
           });
           checkout.open();
         });
-      }
+      } else throw new Error("Razorpay is not configured. No booking was confirmed.");
       sessionStorage.removeItem("lunchbox_checkout");
       setConfirmation(data.orderId);
       setCart({});
