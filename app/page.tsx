@@ -63,7 +63,7 @@ export default function Home() {
   }
 
   function choosePlan() {
-    document.getElementById("menu")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    window.location.assign("/book");
   }
 
   return (
