@@ -20,7 +20,7 @@ steps:
     waitFor: ["test"]
   - id: build-image
     name: gcr.io/cloud-builders/docker
-    args: ["build", "-t", "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_SERVICE}:${BUILD_ID}", "."]
+    args: ["build", "--build-arg", "NEXT_PUBLIC_ENABLE_PHONE_AUTH=false", "-t", "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_SERVICE}:${BUILD_ID}", "."]
     waitFor: ["verify", "build-app"]
   - id: push-image
     name: gcr.io/cloud-builders/docker
@@ -37,7 +37,7 @@ steps:
       - --region=${_REGION}
       - --platform=managed
       - --allow-unauthenticated
-      - --update-env-vars=GCP_PROJECT_ID=${PROJECT_ID},DEFAULT_DAILY_CAPACITY=1500,FRANCHISE_NETWORK_TARGET=198,FRANCHISE_DAILY_STUDENT_CAPACITY=1500
+      - --update-env-vars=GCP_PROJECT_ID=${PROJECT_ID},REQUIRE_FIREBASE_AUTH=false,DEFAULT_DAILY_CAPACITY=1500,FRANCHISE_NETWORK_TARGET=198,FRANCHISE_DAILY_STUDENT_CAPACITY=1500
 
 images:
   - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_SERVICE}:${BUILD_ID}

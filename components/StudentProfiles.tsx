@@ -1,9 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { firebaseAuth } from "@/lib/firebase-client";
 
 export type StudentSelection = { id: string; studentName: string };
+
+type GoogleAddressComponent = { long_name?: string; types?: string[] };
+type GooglePlace = { address_components?: GoogleAddressComponent[] };
+type GoogleAutocomplete = { addListener: (event: string, callback: () => void) => { remove?: () => void }; getPlace: () => GooglePlace };
+type GoogleMapsWindow = Window & { google?: { maps?: { places?: { Autocomplete?: new (input: HTMLInputElement, options: Record<string, unknown>) => GoogleAutocomplete } } } };
 
 type StudentDocument = {
   id: string;
@@ -21,6 +26,11 @@ export default function StudentProfiles({ schoolId, gradeBand, onChange }: { sch
   const [selectedId, setSelectedId] = useState("");
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
+  const addressLine1Ref = useRef<HTMLInputElement>(null);
+  const addressLine2Ref = useRef<HTMLInputElement>(null);
+  const addressCityRef = useRef<HTMLInputElement>(null);
+  const addressStateRef = useRef<HTMLInputElement>(null);
+  const addressPincodeRef = useRef<HTMLInputElement>(null);
 
   const loadStudents = useCallback(async () => {
     const token = await firebaseAuth()?.currentUser?.getIdToken();
@@ -42,6 +52,36 @@ export default function StudentProfiles({ schoolId, gradeBand, onChange }: { sch
   }, [gradeBand, onChange, schoolId]);
 
   useEffect(() => { void loadStudents(); }, [loadStudents]);
+
+  useEffect(() => {
+    let cancelled = false;
+    let listener: { remove?: () => void } | undefined;
+    async function setupAddressAutocomplete() {
+      const response = await fetch("/api/maps/config");
+      const config = await response.json() as { key?: string };
+      if (!config.key || cancelled) return;
+      const start = () => {
+        const maps = (window as GoogleMapsWindow).google?.maps;
+        const Autocomplete = maps?.places?.Autocomplete;
+        if (!Autocomplete || !addressLine1Ref.current) return;
+        const autocomplete = new Autocomplete(addressLine1Ref.current, { componentRestrictions: { country: "in" }, fields: ["address_components", "formatted_address"], types: ["address"] });
+        listener = autocomplete.addListener("place_changed", () => {
+          const components = autocomplete.getPlace().address_components || [];
+          const value = (type: string) => components.find((item: GoogleAddressComponent) => item.types?.includes(type))?.long_name || "";
+          if (addressLine2Ref.current) addressLine2Ref.current.value = value("sublocality_level_1") || value("sublocality");
+          if (addressCityRef.current) addressCityRef.current.value = value("locality");
+          if (addressStateRef.current) addressStateRef.current.value = value("administrative_area_level_1") || "Tamil Nadu";
+          if (addressPincodeRef.current) addressPincodeRef.current.value = value("postal_code");
+        });
+      };
+      if ((window as GoogleMapsWindow).google?.maps?.places?.Autocomplete) { start(); return; }
+      const script = document.createElement("script");
+      script.src = "https://maps.googleapis.com/maps/api/js?key=" + encodeURIComponent(config.key) + "&libraries=places";
+      script.async = true; script.onload = start; document.head.appendChild(script);
+    }
+    void setupAddressAutocomplete().catch(() => undefined);
+    return () => { cancelled = true; listener?.remove?.(); };
+  }, [loading]);
 
   async function createStudent(form: FormData) {
     const token = await firebaseAuth()?.currentUser?.getIdToken();
@@ -110,14 +150,14 @@ export default function StudentProfiles({ schoolId, gradeBand, onChange }: { sch
     <label>Parent relationship<select name="profileRelationship" required defaultValue="mother"><option value="mother">Mother</option><option value="father">Father</option><option value="guardian">Guardian</option></select></label>
     <fieldset>
       <legend>Home address</legend>
-      <label>House/flat and street<input name="homeAddressLine1" required maxLength={160} placeholder="Flat 2B, 10 Lake View Road" /></label>
-      <label>Area/locality, optional<input name="homeAddressLine2" maxLength={160} placeholder="Adyar" /></label>
+      <label>House/flat and street<input ref={addressLine1Ref} name="homeAddressLine1" required maxLength={160} placeholder="Type 3+ letters to search your address" autoComplete="street-address" /></label>
+      <label>Area/locality, optional<input ref={addressLine2Ref} name="homeAddressLine2" maxLength={160} placeholder="Adyar" /></label>
       <div className="form-grid">
-        <label>City<input name="homeAddressCity" required maxLength={80} placeholder="Chennai" /></label>
-        <label>State<input name="homeAddressState" required maxLength={80} defaultValue="Tamil Nadu" /></label>
+        <label>City<input ref={addressCityRef} name="homeAddressCity" required maxLength={80} placeholder="Chennai" /></label>
+        <label>State<input ref={addressStateRef} name="homeAddressState" required maxLength={80} defaultValue="Tamil Nadu" /></label>
       </div>
       <div className="form-grid">
-        <label>Pincode<input name="homeAddressPincode" required inputMode="numeric" pattern="[0-9]{6}" maxLength={6} placeholder="600020" /></label>
+        <label>Pincode<input ref={addressPincodeRef} name="homeAddressPincode" required inputMode="numeric" pattern="[0-9]{6}" maxLength={6} placeholder="600020" /></label>
         <label>Landmark, optional<input name="homeAddressLandmark" maxLength={120} placeholder="Near bus stop" /></label>
       </div>
     </fieldset>

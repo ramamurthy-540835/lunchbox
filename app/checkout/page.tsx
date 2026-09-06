@@ -5,7 +5,7 @@ import StudentProfiles, { type StudentSelection } from "@/components/StudentProf
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { cities as fallbackCities, gradePlans as fallbackGradePlans, meals as fallbackMeals, schools as fallbackSchools, type GradePlan, type Meal, type School } from "@/lib/meals";
-import { firebaseAuth, isFirebaseClientConfigured } from "@/lib/firebase-client";
+import { firebaseAuth, isFirebaseClientConfigured, isPhoneAuthEnabled } from "@/lib/firebase-client";
 import { isMealAudience, mealAudiencePrice, type MealAudience } from "@/lib/pricing";
 
 type Cart = Record<string, number>;
@@ -27,6 +27,7 @@ async function loadRazorpayCheckout() {
 }
 
 export default function CheckoutPage() {
+  const phoneAuthRequired = isFirebaseClientConfigured && isPhoneAuthEnabled;
   const [cities, setCities] = useState<string[]>(fallbackCities);
   const [meals, setMeals] = useState<Meal[]>(fallbackMeals);
   const [schools, setSchools] = useState<School[]>(fallbackSchools);
@@ -203,7 +204,7 @@ export default function CheckoutPage() {
 
         <section className="checkout-panel">
           <div className="panel-heading"><span>2</span><div><h2>Parent and student</h2><p>Home address is kept for parent records. Lunch delivery remains school-based.</p></div></div>
-          {isFirebaseClientConfigured ? <>
+          {phoneAuthRequired ? <>
             <ParentAuth onChange={setVerifiedPhone} />
             {verifiedPhone && selectedSchool && <StudentProfiles schoolId={selectedSchool.id} gradeBand={gradeBand} onChange={setSelectedStudent} />}
           </> : <>
@@ -244,7 +245,7 @@ export default function CheckoutPage() {
         </section>
 
         {message && <p className="checkout-message" role="alert">{message}</p>}
-        <button className="checkout-button checkout-submit" disabled={submitting || itemCount === 0 || !selectedSchool || (isFirebaseClientConfigured && (!verifiedPhone || !selectedStudent))}>{submitting ? "Placing order..." : `Place order · ₹${subtotal}`}</button>
+        <button className="checkout-button checkout-submit" disabled={submitting || itemCount === 0 || !selectedSchool || (phoneAuthRequired && (!verifiedPhone || !selectedStudent))}>{submitting ? "Placing order..." : `Place order · ₹${subtotal}`}</button>
       </form>
 
       <aside className="checkout-summary" aria-label="Order summary">

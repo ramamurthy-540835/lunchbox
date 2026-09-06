@@ -6,6 +6,7 @@ import { meals } from "@/lib/meals";
 import { LeafArt } from "@/components/book/art/leaf";
 import { TiffinArt } from "@/components/book/art/tiffin";
 import { FoodArt } from "@/components/book/art/food";
+import { isMealAudience, type MealAudience } from "@/lib/pricing";
 import FullBookingPage from "./full/page";
 import styles from "./demo.module.css";
 
@@ -28,20 +29,21 @@ export default function BookDemoPage() {
   const [beat, setBeat] = useState<Beat>("open");
   const [selectedDays, setSelectedDays] = useState([0, 1, 2, 3, 4]);
   const [price, setPrice] = useState<Price | null>(null);
+  const [audience, setAudience] = useState<MealAudience>("school");
   const [priceError, setPriceError] = useState("");
   const [reduced, setReduced] = useState(false);
   const taps = useRef(0); const resetTimer = useRef<number | null>(null);
   const days = meals.slice(0, 5);
 
-  useEffect(() => { if (new URLSearchParams(window.location.search).get("reset") === "1") setBeat("open"); setReduced(window.matchMedia("(prefers-reduced-motion: reduce)").matches); }, []);
-  useEffect(() => { if (beat !== "fill") return; const controller = new AbortController(); setPriceError(""); fetch("/api/orders/price", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ audience: "school", dayCount: selectedDays.length }), signal: controller.signal }).then((response) => response.json().then((data) => { if (!response.ok) throw new Error(data.error || "The server bill is unavailable."); return data; })).then(setPrice).catch((error) => { if (error.name !== "AbortError") setPriceError("The server bill is unavailable. Keep this tab online and try again."); }); return () => controller.abort(); }, [beat, selectedDays.length]);
+  useEffect(() => { const params = new URLSearchParams(window.location.search); const requestedAudience = params.get("audience"); if (isMealAudience(requestedAudience)) setAudience(requestedAudience); if (params.get("reset") === "1") setBeat("open"); setReduced(window.matchMedia("(prefers-reduced-motion: reduce)").matches); }, []);
+  useEffect(() => { if (beat !== "fill") return; const controller = new AbortController(); setPriceError(""); fetch("/api/orders/price", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ audience, dayCount: selectedDays.length }), signal: controller.signal }).then((response) => response.json().then((data) => { if (!response.ok) throw new Error(data.error || "The server bill is unavailable."); return data; })).then(setPrice).catch((error) => { if (error.name !== "AbortError") setPriceError("The server bill is unavailable. Keep this tab online and try again."); }); return () => controller.abort(); }, [audience, beat, selectedDays.length]);
 
   const cameraStyle = { transform: reducedMotionTransform(reduced) };
   const daysLabel = useMemo(() => selectedDays.map((index) => days[index]?.day.slice(0, 3)).join(" · "), [days, selectedDays]);
   function reset() { setBeat("open"); setSelectedDays([0, 1, 2, 3, 4]); }
   function continueToCheckout() {
     const cart = Object.fromEntries(selectedDays.map((index) => [days[index].id, 1]));
-    sessionStorage.setItem("lunchbox_checkout", JSON.stringify({ cart, audience: "school" }));
+    sessionStorage.setItem("lunchbox_checkout", JSON.stringify({ cart, audience }));
     window.location.assign("/checkout");
   }
   function tiffinTap() { taps.current += 1; if (resetTimer.current) window.clearTimeout(resetTimer.current); resetTimer.current = window.setTimeout(() => { taps.current = 0; }, 700); if (taps.current >= 3) { taps.current = 0; reset(); } }
@@ -57,7 +59,7 @@ export default function BookDemoPage() {
         {beat === "fill" && <div className={styles.foodLayer}>{food.map((item) => <div className={`${styles.food} ${styles[`food-${item.kind}`]}`} key={item.name} style={{ "--delay": `${reduced ? 0 : item.delay}ms` } as React.CSSProperties}><FoodArt kind={item.kind} curryName={item.name} /><span>{item.name}</span></div>)}</div>}
       </div>
     </div>
-    {beat === "open" && <section className={styles.copy}><h1>A school lunch worth opening.</h1><button onClick={(event) => { event.stopPropagation(); advanceBeat(); }}>Open the box</button></section>}
+    {beat === "open" && <section className={styles.copy}><h1>{ audience === "school" ? "A school lunch worth opening." : "A better lunch worth opening." }</h1><button onClick={(event) => { event.stopPropagation(); advanceBeat(); }}>Open the box</button></section>}
     {beat === "fill" && <section className={styles.fillControls} onClick={(event) => event.stopPropagation()}><h1>What your child gets.</h1><p className={styles.composition}>1 chapati, 1 bowl of rice, sambar, curd, 2 vegetable curries, 1 serving of channa, 1 appalam.</p><div className={styles.week} aria-label="Choose days">{days.map((meal, index) => <button className={selectedDays.includes(index) ? styles.daySelected : ""} key={meal.id} onClick={() => toggleDay(index)}><span>{meal.day.slice(0, 3)}</span><i aria-hidden="true"><LeafArt /></i></button>)}</div>{priceError && <p role="status" className={styles.error}>Your final total will be calculated securely at checkout.</p>}<div className={styles.bill}><span>{daysLabel || "Choose a day"}</span><b>{price ? `₹${price.totalInr}` : "Calculated at checkout"}</b></div><button disabled={!selectedDays.length} onClick={continueToCheckout}>Continue to secure checkout</button></section>}
   </main>;
 }

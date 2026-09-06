@@ -28,7 +28,8 @@ export default function ParentAuth({ onChange }: { onChange: (phone: string | nu
     } catch (error) {
       verifier.current?.clear();
       verifier.current = null;
-      setMessage(error instanceof Error ? error.message : "Unable to send verification code.");
+      const details = error instanceof Error ? error.message : "";
+      setMessage(details.includes("requests-from-referer") ? "Firebase is blocking this live domain. Add lunchbox-foovqasysa-el.a.run.app in Firebase Console → Authentication → Settings → Authorized domains, then reload." : details || "Unable to send verification code.");
     }
   }
 

@@ -38,6 +38,12 @@ export default function Home() {
 
   const itemCount = Object.values(cart).reduce((sum, count) => sum + count, 0);
   const unitPrice = mealAudiencePrice(audience);
+  const audienceCopy = {
+    senior: { eyebrow: "Comfort made fresh every day", title: <>Wholesome food for<br /><em>good living.</em></>, description: "Freshly cooked, balanced vegetarian lunches made gentle, filling and easy to enjoy." },
+    school: { eyebrow: "Made for growing minds", title: <>Big nutrition for<br /><em>bright young minds.</em></>, description: "Freshly cooked, balanced school lunches designed for growing students from 6th to 12th standard." },
+    college: { eyebrow: "Fuel for the next chapter", title: <>Good food for<br /><em>big ambitions.</em></>, description: "Fresh, filling vegetarian lunches that keep college days moving from first class to last." },
+    working: { eyebrow: "A better workday lunch", title: <>Eat well. Work<br /><em>bright.</em></>, description: "A dependable, balanced lunch for busy workdays — cooked fresh and delivered ready for your break." },
+  }[audience];
   const subtotal = useMemo(
     () => meals.reduce((sum, meal) => sum + unitPrice * (cart[meal.id] || 0), 0),
     [cart, meals, unitPrice],
@@ -63,7 +69,7 @@ export default function Home() {
   }
 
   function choosePlan() {
-    window.location.assign("/book");
+    window.location.assign("/book?audience=" + audience);
   }
 
   return (
@@ -88,11 +94,11 @@ export default function Home() {
 
       <section className="hero" id="top">
         <div className="hero-copy">
-          <div className="eyebrow"><span>●</span> Now serving 4 Tamil Nadu cities</div>
-          <h1>Big nutrition for<br /><em>bright young minds.</em></h1>
-          <p>Freshly cooked, balanced school lunches designed for growing students from 6th to 12th standard.</p>
+          <div className="eyebrow"><span>●</span> {audienceCopy.eyebrow}</div>
+          <h1>{audienceCopy.title}</h1>
+          <p>{audienceCopy.description}</p>
           <div className="hero-actions">
-            <button className="primary-button" onClick={choosePlan}>Choose ₹{unitPrice} Lunch <span>→</span></button>
+            <button className="primary-button" onClick={choosePlan}>Open the ₹{unitPrice} lunch <span>→</span></button>
             <div className="parent-proof"><b>4.9 ★</b><span>Loved by 2,000+ parents</span></div>
           </div>
         </div>

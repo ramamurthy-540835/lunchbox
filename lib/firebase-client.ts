@@ -9,6 +9,7 @@ const config = {
 };
 
 export const isFirebaseClientConfigured = Boolean(config.apiKey && config.authDomain && config.projectId);
+export const isPhoneAuthEnabled = process.env.NEXT_PUBLIC_ENABLE_PHONE_AUTH !== "false";
 
 export function firebaseAuth() {
   if (!isFirebaseClientConfigured) return null;
