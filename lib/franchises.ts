@@ -1,5 +1,6 @@
 import { Storage } from "@google-cloud/storage";
 import { firestoreClient } from "@/lib/firestore";
+import { assertV2Isolation } from "@/lib/v2-isolation";
 
 export type Franchise = {
   id: string;
@@ -57,6 +58,7 @@ async function downloadJson(file: StorageFile) {
 }
 
 async function getStorageFranchises(): Promise<Franchise[] | null> {
+  assertV2Isolation();
   const projectId = process.env.GCP_PROJECT_ID?.trim();
   const bucketName = process.env.GCS_BUCKET?.trim();
   if (!projectId || !bucketName) return null;
