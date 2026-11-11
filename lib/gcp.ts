@@ -2,6 +2,7 @@ import { BigQuery } from "@google-cloud/bigquery";
 import { Storage } from "@google-cloud/storage";
 import { createHmac } from "node:crypto";
 import { FREE_MEALS_DAILY_CAP, type FreeMealType, type PriceTier } from "@/lib/pricing";
+import { assertV2Isolation } from "@/lib/v2-isolation";
 
 export type FreeMealItem = {
   meal_id: string;
@@ -93,6 +94,7 @@ function analyticsOrder(order: OrderRecord, receiptUri: string) {
 }
 
 export function isGcpConfigured() {
+  assertV2Isolation();
   return Boolean(projectId && bucketName);
 }
 
@@ -136,6 +138,7 @@ export async function persistOrder(order: OrderRecord) {
 }
 
 export async function storeDeliveryProof(serviceDate: string, routeId: string, schoolId: string, file: File) {
+  assertV2Isolation();
   if (!projectId || !bucketName) throw new Error("GCS delivery-proof storage is not configured.");
   if (file.size < 1 || file.size > 5 * 1024 * 1024 || !["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
     throw new Error("Proof must be a JPG, PNG or WebP image under 5 MB.");
