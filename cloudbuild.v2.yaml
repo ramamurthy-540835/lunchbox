@@ -1,0 +1,113 @@
+substitutions:
+  _REGION: asia-south1
+  _V1_PROJECT_ID: SET_VERIFIED_V1_PROJECT_ID
+  _V2_RUNTIME_SERVICE_ACCOUNT: SET_V2_RUNTIME_SERVICE_ACCOUNT
+  _V2_GCS_BUCKET: lunchbox-v2-SET_UNIQUE_SUFFIX
+  _V2_BQ_DATASET: lunchbox_v2_orders
+  _V2_FIREBASE_WEB_API_KEY: SET_V2_FIREBASE_WEB_API_KEY
+  _V2_FIREBASE_APP_ID: SET_V2_FIREBASE_APP_ID
+
+steps:
+  - id: v2-isolation-preflight
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args:
+      - -euc
+      - |
+        test "$BRANCH_NAME" = "lunchbox2" || { echo "Refusing to build outside lunchbox2."; exit 1; }
+        test -n "$COMMIT_SHA" || { echo "A Git commit SHA is required for this deployment."; exit 1; }
+        test -n "$_V1_PROJECT_ID" && test "$_V1_PROJECT_ID" != "SET_VERIFIED_V1_PROJECT_ID" || { echo "Set _V1_PROJECT_ID to the verified V1 project before creating the trigger."; exit 1; }
+        test "$PROJECT_ID" != "$_V1_PROJECT_ID" || { echo "Refusing to deploy V2 into the V1 project."; exit 1; }
+        test -n "$_V2_RUNTIME_SERVICE_ACCOUNT" && test "$_V2_RUNTIME_SERVICE_ACCOUNT" != "SET_V2_RUNTIME_SERVICE_ACCOUNT" || { echo "Set a V2-only runtime service account."; exit 1; }
+        [[ "$_V2_GCS_BUCKET" == lunchbox-v2-* ]] || { echo "The V2 bucket must use the lunchbox-v2- prefix."; exit 1; }
+        [[ "$_V2_BQ_DATASET" == lunchbox_v2* ]] || { echo "The V2 BigQuery dataset must use the lunchbox_v2 prefix."; exit 1; }
+        test -n "$_V2_FIREBASE_WEB_API_KEY" && test "$_V2_FIREBASE_WEB_API_KEY" != "SET_V2_FIREBASE_WEB_API_KEY" || { echo "Set the V2 Firebase Web API key."; exit 1; }
+        test -n "$_V2_FIREBASE_APP_ID" && test "$_V2_FIREBASE_APP_ID" != "SET_V2_FIREBASE_APP_ID" || { echo "Set the V2 Firebase app ID."; exit 1; }
+        gcloud services enable artifactregistry.googleapis.com run.googleapis.com firestore.googleapis.com firebaserules.googleapis.com bigquery.googleapis.com storage.googleapis.com identitytoolkit.googleapis.com --project="$PROJECT_ID"
+        gcloud run regions list --project="$PROJECT_ID" --format='value(locationId)' | grep -Fxq "$_REGION" || { echo "Cloud Run region $_REGION is unavailable in the V2 project."; exit 1; }
+        gcloud firestore locations list --project="$PROJECT_ID" --format='value(locationId)' | grep -Fxq "$_REGION" || { echo "Firestore location $_REGION is unavailable in the V2 project."; exit 1; }
+        echo "Isolation preflight passed for V2 project $PROJECT_ID in $_REGION."
+
+  - id: lint-and-unit-tests
+    name: node:22
+    entrypoint: bash
+    args: ["-euc", "npm ci && npm run lint && npm run test"]
+    waitFor: [v2-isolation-preflight]
+
+  - id: provision-v2-resources
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args:
+      - -euc
+      - |
+        gcloud artifacts repositories describe lunchbox-v2 --location="$_REGION" --project="$PROJECT_ID" >/dev/null 2>&1 || gcloud artifacts repositories create lunchbox-v2 --repository-format=docker --location="$_REGION" --project="$PROJECT_ID" --description="LunchBox V2 isolated images"
+        gcloud storage buckets describe "gs://$_V2_GCS_BUCKET" --project="$PROJECT_ID" >/dev/null 2>&1 || gcloud storage buckets create "gs://$_V2_GCS_BUCKET" --project="$PROJECT_ID" --location="$_REGION" --uniform-bucket-level-access --public-access-prevention
+        gcloud firestore databases describe --database="(default)" --project="$PROJECT_ID" >/dev/null 2>&1 || gcloud firestore databases create --database="(default)" --location="$_REGION" --type=firestore-native --project="$PROJECT_ID"
+        bq show --project_id="$PROJECT_ID" "$PROJECT_ID:$_V2_BQ_DATASET" >/dev/null 2>&1 || bq mk --dataset --project_id="$PROJECT_ID" --location="$_REGION" "$PROJECT_ID:$_V2_BQ_DATASET"
+        bq show --project_id="$PROJECT_ID" "$PROJECT_ID:school_directory_v2" >/dev/null 2>&1 || bq mk --dataset --project_id="$PROJECT_ID" --location="$_REGION" "$PROJECT_ID:school_directory_v2"
+        sed -e "s/YOUR_PROJECT_ID/$PROJECT_ID/g" -e "s/school_lunch/$_V2_BQ_DATASET/g" -e "s/asia-south1/$_REGION/g" infrastructure/bigquery.sql > /workspace/bigquery.v2.sql
+        bq query --project_id="$PROJECT_ID" --location="$_REGION" --use_legacy_sql=false < /workspace/bigquery.v2.sql
+        sed -e "s/YOUR_PROJECT_ID/$PROJECT_ID/g" -e "s/school_directory/school_directory_v2/g" -e "s/asia-south1/$_REGION/g" infrastructure/school-directory.sql > /workspace/school-directory.v2.sql
+        bq query --project_id="$PROJECT_ID" --location="$_REGION" --use_legacy_sql=false < /workspace/school-directory.v2.sql
+    waitFor: [lint-and-unit-tests]
+
+  - id: deploy-v2-firestore-rules
+    name: node:22
+    entrypoint: bash
+    args: ["-euc", "npx --yes firebase-tools deploy --only firestore:rules,firestore:indexes --project=\"$PROJECT_ID\" --non-interactive"]
+    waitFor: [provision-v2-resources]
+
+  - id: build-v2-image
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --file=Dockerfile.v2
+      - --build-arg=NEXT_PUBLIC_FIREBASE_API_KEY=${_V2_FIREBASE_WEB_API_KEY}
+      - --build-arg=NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${PROJECT_ID}.firebaseapp.com
+      - --build-arg=NEXT_PUBLIC_FIREBASE_PROJECT_ID=${PROJECT_ID}
+      - --build-arg=NEXT_PUBLIC_FIREBASE_APP_ID=${_V2_FIREBASE_APP_ID}
+      - --build-arg=NEXT_PUBLIC_LUNCHBOX_ENV=v2
+      - --tag=${_REGION}-docker.pkg.dev/${PROJECT_ID}/lunchbox-v2/lunchbox-v2:${COMMIT_SHA}
+      - .
+    waitFor: [deploy-v2-firestore-rules]
+
+  - id: push-v2-image
+    name: gcr.io/cloud-builders/docker
+    args: ["push", "${_REGION}-docker.pkg.dev/${PROJECT_ID}/lunchbox-v2/lunchbox-v2:${COMMIT_SHA}"]
+    waitFor: [build-v2-image]
+
+  - id: deploy-v2-cloud-run
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args:
+      - -euc
+      - |
+        secret_args=()
+        if gcloud secrets describe lunchbox-v2-google-maps-api-key --project="$PROJECT_ID" >/dev/null 2>&1; then
+          secret_args+=(--update-secrets=GOOGLE_MAPS_API_KEY=lunchbox-v2-google-maps-api-key:latest)
+        fi
+        if gcloud secrets describe lunchbox-v2-serpapi-api-key --project="$PROJECT_ID" >/dev/null 2>&1; then
+          secret_args+=(--update-secrets=SERPAPI_API_KEY=lunchbox-v2-serpapi-api-key:latest)
+        fi
+        gcloud run deploy lunchbox-v2 \
+          --image="${_REGION}-docker.pkg.dev/${PROJECT_ID}/lunchbox-v2/lunchbox-v2:${COMMIT_SHA}" \
+          --project="$PROJECT_ID" \
+          --region="$_REGION" \
+          --platform=managed \
+          --service-account="$_V2_RUNTIME_SERVICE_ACCOUNT" \
+          --ingress=all \
+          --allow-unauthenticated \
+          --set-env-vars="LUNCHBOX_ENV=v2,LUNCHBOX_VERSION=2,LUNCHBOX_V2_PROJECT_ID=$PROJECT_ID,GCP_PROJECT_ID=$PROJECT_ID,FIREBASE_PROJECT_ID=$PROJECT_ID,NEXT_PUBLIC_FIREBASE_PROJECT_ID=$PROJECT_ID,FIRESTORE_DATABASE_ID=(default),BIGQUERY_DATASET=$_V2_BQ_DATASET,BIGQUERY_ORDERS_TABLE=orders_v2,SCHOOL_DIRECTORY_BIGQUERY_DATASET=school_directory_v2,GCS_BUCKET=$_V2_GCS_BUCKET,REQUIRE_FIREBASE_AUTH=true,ENABLE_PAYMENTS=false,FRANCHISE_PAYMENT_ENABLED=false" \
+          "$${secret_args[@]}"
+        service_url="$$(gcloud run services describe lunchbox-v2 --project="$PROJECT_ID" --region="$_REGION" --format='value(status.url)')"
+        test -n "$$service_url"
+        echo "LunchBox V2 URL: $$service_url"
+        curl --fail --silent --show-error "$$service_url/api/health?ready=1"
+    waitFor: [push-v2-image]
+
+images:
+  - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/lunchbox-v2/lunchbox-v2:${COMMIT_SHA}
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  dynamicSubstitutions: true
