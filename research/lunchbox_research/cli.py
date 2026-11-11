@@ -25,7 +25,7 @@ def parser() -> argparse.ArgumentParser:
     command.add_argument("--center-lon", type=float, help="Neighbourhood centre longitude for non-administrative localities.")
     command.add_argument("--school-search-radius", type=float, default=5.0, help="School discovery radius around the supplied centre, in km.")
     command.add_argument("--schools", type=Path, help="CSV containing explicit schools and coordinates.")
-    command.add_argument("--radius", type=float, default=3.0, help="Maximum straight-line radius in km (0.1–10).")
+    command.add_argument("--radius", type=float, default=3.0, help="Maximum straight-line radius in km (0.1â€“10).")
     command.add_argument("--provider", choices=("osm", "fixture"), default="osm")
     command.add_argument("--fixture", type=Path, default=DEFAULT_FIXTURE, help="Offline fixture JSON path.")
     command.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
@@ -125,6 +125,10 @@ def main(argv: list[str] | None = None) -> int:
         upload_config = config.get("gcs_upload", {})
         if bool(upload_config.get("enabled", False)) and not args.no_gcs_upload:
             try:
+                if str(upload_config.get("project", "")).strip() in {"", "YOUR_V2_PROJECT_ID", "chennaifood"}:
+                    raise ValueError("Configure an explicit V2 project before enabling GCS upload.")
+                if str(upload_config.get("bucket", "")).strip() in {"", "chennaifood"} or not str(upload_config.get("bucket", "")).startswith("lunchbox-v2-"):
+                    raise ValueError("Configure a dedicated bucket whose name starts with lunchbox-v2-.")
                 gcs_destination = upload_files(
                     [csv_path, xlsx_path, summary_path, audit_path],
                     bucket=str(upload_config["bucket"]),
@@ -148,3 +152,4 @@ def main(argv: list[str] | None = None) -> int:
         audit.write(args.output_dir / "research_log.csv")
         print(f"error: {error}", file=sys.stderr)
         return 1
+
