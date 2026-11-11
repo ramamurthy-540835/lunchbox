@@ -1,6 +1,7 @@
 import { applicationDefault, getApp, getApps, initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { isFirestoreConfigured } from "@/lib/firestore";
+import { assertV2Isolation } from "@/lib/v2-isolation";
 
 const projectId = process.env.GCP_PROJECT_ID;
 
@@ -16,6 +17,7 @@ export function isParentAuthRequired() {
 }
 
 function adminAuth() {
+  assertV2Isolation();
   const app = getApps().length ? getApp() : initializeApp({ credential: applicationDefault(), projectId });
   return getAuth(app);
 }
