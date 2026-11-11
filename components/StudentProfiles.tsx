@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { firebaseAuth } from "@/lib/firebase-client";
+import { standardsForGradeBand } from "@/lib/student-registration";
 
 export type StudentSelection = { id: string; studentName: string };
 
@@ -10,6 +11,7 @@ type StudentDocument = {
   student_name: string;
   school_id: string;
   grade_band: string;
+  class_standard?: number;
   section?: string;
   roll_number?: string;
   relationship?: string;
@@ -55,6 +57,7 @@ export default function StudentProfiles({ schoolId, gradeBand, onChange }: { sch
         studentName: form.get("profileStudentName"),
         schoolId,
         gradeBand,
+        classStandard: form.get("profileClassStandard"),
         section: form.get("profileSection"),
         rollNumber: form.get("profileRollNumber"),
         relationship: form.get("profileRelationship"),
@@ -78,6 +81,7 @@ export default function StudentProfiles({ schoolId, gradeBand, onChange }: { sch
       student_name: data.studentName,
       school_id: schoolId,
       grade_band: gradeBand,
+      class_standard: data.classStandard,
       section: data.section,
       roll_number: data.rollNumber,
       relationship: data.relationship,
@@ -97,14 +101,15 @@ export default function StudentProfiles({ schoolId, gradeBand, onChange }: { sch
       const student = eligible.find((item) => item.id === event.target.value);
       setSelectedId(event.target.value);
       onChange(student ? { id: student.id, studentName: student.student_name } : null);
-    }}><option value="" disabled>Select student</option>{eligible.map((student) => <option value={student.id} key={student.id}>{student.student_name}{student.section ? ` - ${student.section}` : ""}</option>)}</select></label>}
+    }}><option value="" disabled>Select student</option>{eligible.map((student) => <option value={student.id} key={student.id}>{student.student_name}{student.class_standard ? ` · Class ${student.class_standard}` : ` · ${student.grade_band} standard`}{student.section ? ` · ${student.section}` : ""}</option>)}</select></label>}
     <div className="student-form-heading">
       <b>{eligible.length ? "Add another student" : "Register student"}</b>
       <small>Home address is kept for parent records. Lunch delivery remains school-based.</small>
     </div>
     <label>Student full name<input name="profileStudentName" required minLength={2} maxLength={100} placeholder="e.g. Nila Raman" /></label>
     <div className="form-grid">
-      <label>Section, optional<input name="profileSection" maxLength={20} placeholder="e.g. B" /></label>
+      <label>Class / Standard *<select name="profileClassStandard" required defaultValue=""><option value="" disabled>Select class</option>{standardsForGradeBand(gradeBand).map((standard) => <option value={standard} key={standard}>Class {standard}</option>)}</select></label>
+      <label>Section *<input name="profileSection" required minLength={1} maxLength={30} placeholder="e.g. B" /></label>
       <label>Roll/admission no., optional<input name="profileRollNumber" maxLength={40} placeholder="e.g. A1024" /></label>
     </div>
     <label>Parent relationship<select name="profileRelationship" required defaultValue="mother"><option value="mother">Mother</option><option value="father">Father</option><option value="guardian">Guardian</option></select></label>
