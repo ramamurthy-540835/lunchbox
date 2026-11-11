@@ -1,3 +1,5 @@
+import { gradeBandForStandard, normalizeSection } from "@/lib/student-registration";
+
 export type MealEnrollmentProfile = "school_child" | "college_student" | "office_worker";
 
 export type MealEnrollmentIntake = {
@@ -42,16 +44,20 @@ export function validateMealEnrollment(body: Record<string, unknown>, profile: M
   if (profile === "school_child") {
     const parent = contact(body, "parent_name", "parent_phone", "parent_email");
     if ("error" in parent) return { error: parent.error };
-    const childName = text(body, "child_name", 120);
+    const childName = typeof body.child_name === "string" ? body.child_name.trim().replace(/\s+/g, " ") : "";
     const grade = text(body, "grade", 40);
+    const classStandard = Number(grade);
+    const gradeBand = gradeBandForStandard(classStandard);
+    const section = normalizeSection(body.section);
     const age = optionalAge(body.child_age);
-    if (childName.length < 2) return { error: "Enter the child's full name." };
-    if (!grade) return { error: "Select the child's class or grade." };
+    if (childName.length < 2 || childName.length > 120) return { error: "Enter a valid child's full name (2 to 120 characters)." };
+    if (!gradeBand) return { error: "Select a supported class from 6 through 12." };
+    if (!section) return { error: "Enter a valid student section." };
     if (Number.isNaN(age)) return { error: "Enter a valid child age." };
     return { data: { personName: childName, contactPhone: parent.phone, contactEmail: parent.email, fields: {
       parent_name: parent.name, parent_phone: parent.phone, parent_email: parent.email,
       relationship: text(body, "relationship", 30) || null,
-      child_name: childName, child_age: age, grade, section: text(body, "section", 30) || null,
+      child_name: childName, child_age: age, grade, class_standard: classStandard, grade_band: gradeBand, section,
       dietary_preference: dietaryPreference, allergies, meal_plan_interest: mealPlanInterest,
       preferred_meal_time: preferredMealTime, consent_given: true,
     } } };
