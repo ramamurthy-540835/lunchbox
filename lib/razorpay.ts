@@ -5,6 +5,7 @@ const keySecret = process.env.RAZORPAY_KEY_SECRET;
 const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
 
 export function isRazorpayConfigured() {
+  if (process.env.LUNCHBOX_ENV === "v2") return process.env.ENABLE_PAYMENTS === "true" && Boolean(keyId?.startsWith("rzp_test_") && keySecret);
   return process.env.ENABLE_PAYMENTS !== "false" && Boolean(keyId && keySecret);
 }
 
