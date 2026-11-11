@@ -3,8 +3,15 @@ import { validateMealEnrollment } from "@/lib/meal-enrollment";
 
 describe("individual meal enrollment validation", () => {
   it("validates a parent registering a school child", () => {
-    const result = validateMealEnrollment({ parent_name: "Anita", parent_phone: "9876543210", child_name: "Nila", grade: "6", consent: "on" }, "school_child");
-    expect(result.data?.fields).toMatchObject({ parent_name: "Anita", child_name: "Nila", grade: "6" });
+    const result = validateMealEnrollment({ parent_name: "Anita", parent_phone: "9876543210", child_name: " Nila  Raman ", grade: "6", section: " B ", consent: "on" }, "school_child");
+    expect(result.data?.fields).toMatchObject({ parent_name: "Anita", child_name: "Nila Raman", grade: "6", class_standard: 6, grade_band: "6-8", section: "B" });
+  });
+
+  it("requires a supported class and section for school students", () => {
+    const missingSection = validateMealEnrollment({ parent_name: "Anita", parent_phone: "9876543210", child_name: "Nila", grade: "7", consent: "on" }, "school_child");
+    expect(missingSection.error).toMatch(/section/i);
+    const unsupportedClass = validateMealEnrollment({ parent_name: "Anita", parent_phone: "9876543210", child_name: "Nila", grade: "5", section: "A", consent: "on" }, "school_child");
+    expect(unsupportedClass.error).toMatch(/6 through 12/i);
   });
 
   it("requires the child's name and grade", () => {
