@@ -1,6 +1,8 @@
 "use client";
 
 import InstallAppButton from "@/components/InstallAppButton";
+import PrimaryMenu from "@/components/PrimaryMenu";
+import Link from "next/link";
 import AudienceCategorySelector from "@/components/AudienceCategorySelector";
 import FranchiseLocationDashboard from "@/components/FranchiseLocationDashboard";
 import FranchiseNetworkExplorer from "@/components/franchises/FranchiseNetworkExplorer";
@@ -130,12 +132,7 @@ export default function Home() {
           <span className="brand-mark">L</span>
           <span>Lunch<span>Box</span></span>
         </a>
-        <nav aria-label="Primary navigation">
-          <a href="#menu">Menu</a>
-          <a href="#standards">Our promise</a>
-          <a href="#how">How it works</a>
-          <a href="/franchise">Franchise</a>
-        </nav>
+        <PrimaryMenu />
         <InstallAppButton />
         <button className="cart-button" onClick={() => setCartOpen(true)}>
           <span>Bag</span>
@@ -144,7 +141,22 @@ export default function Home() {
         <a className="profile-button" href="/checkout" aria-label="Login or open your profile"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M4.5 20c.8-4 3.1-6 7.5-6s6.7 2 7.5 6"/></svg><span>Login</span></a>
       </header>
 
-      <section className="hero" id="top">
+      <section className="promise-preview" id="top" aria-labelledby="promise-heading">
+        <div className="promise-preview-heading">
+          <span className="kicker">OUR PROMISE</span>
+          <h1 id="promise-heading">A better school lunch, made easier for families.</h1>
+          <p>Trusted school partners, reliable daily delivery, easy parent ordering, and clear nutrition information.</p>
+          <Link className="promise-read-more" href="/our-promise">Read more <span aria-hidden="true">→</span></Link>
+        </div>
+        <div className="promise-strip" id="standards">
+          <div><i aria-hidden="true">{"\u25A3"}</i><span><b>Trusted by Schools</b><small>Partnered with verified schools across Tamil Nadu.</small></span></div>
+          <div><i aria-hidden="true">{"\u23F1"}</i><span><b>Reliable Daily Delivery</b><small>Lunches arrive on time every school day.</small></span></div>
+          <div><i aria-hidden="true">{"\u25CE"}</i><span><b>Easy Parent Ordering</b><small>Order, manage, and track in a few taps.</small></span></div>
+          <div><i aria-hidden="true">{"\u2665"}</i><span><b>Healthy Kids</b><small>Clear nutrition and quality standards for parents.</small></span></div>
+        </div>
+      </section>
+
+      <section className="hero" id="hero">
         <div className="hero-copy">
           <div className="eyebrow"><span>●</span> Now serving 4 Tamil Nadu cities</div>
           <h1>Big nutrition for<br /><em>bright young minds.</em></h1>
@@ -165,33 +177,27 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="promise-strip" id="standards">
-        <div><i aria-hidden="true">{"\u25A3"}</i><span><b>Trusted by Schools</b><small>Partnered with verified schools across Tamil Nadu.</small></span></div>
-        <div><i aria-hidden="true">{"\u23F1"}</i><span><b>Reliable Daily Delivery</b><small>Lunches arrive on time every school day.</small></span></div>
-        <div><i aria-hidden="true">{"\u25CE"}</i><span><b>Easy Parent Ordering</b><small>Order, manage, and track in a few taps.</small></span></div>
-        <div><i aria-hidden="true">{"\u2665"}</i><span><b>Healthy Kids</b><small>Clear nutrition and quality standards for parents.</small></span></div>
-      </section>
-
       <section className="menu-section" id="menu">
         <div className="section-heading">
           <div><span className="kicker">THIS WEEK</span><h2>Pick their happy lunch.</h2></div>
           <p>Every packet contains 1 chapati, 1 bowl of rice, sambar, curd, 2 vegetable curries, channa and 1 appalam.</p>
         </div>
 
-        <AudienceCategorySelector value={audience} onChange={setAudience} />
+        <p className="service-locations" id="service-locations">Currently listed service cities: {fallbackCities.join(", ")}.</p>
+
+        <div id="plans"><AudienceCategorySelector value={audience} onChange={setAudience} /></div>
 
         <div className="menu-diet" aria-label="Meal type"><span>100% vegetarian</span></div>
 
-        <div className="meal-grid">
+        <div className="meal-grid" id="pricing">
           {catalogError && <p role="alert">{catalogError}. Please try again shortly.</p>}
           {gradePlans[gradeBand] && meals.map((meal) => <MealCard key={meal.id} meal={meal} gradePlan={gradePlans[gradeBand]} price={unitPrice} quantity={cart[meal.id] || 0} storyEnabled onAdd={() => addMeal(meal.id)} />)}
         </div>
       </section>
 
-      <section className="how-section" id="how">
-        <div><span>1</span><b>Choose meals</b><p>Select one day or plan the whole week.</p></div>
-        <div><span>2</span><b>Tell us the school</b><p>We group deliveries by campus and lunch break.</p></div>
-        <div><span>3</span><b>We deliver fresh</b><p>Every pack arrives sealed, named and on time.</p></div>
+      <section className="how-preview">
+        <div><span className="kicker">SIMPLE SCHOOL LUNCH ORDERING</span><h2>How it works</h2><p>Choose an eligible school, select a meal, add it to your bag, then confirm student and checkout details.</p></div>
+        <Link className="primary-button" href="/how-it-works">See how it works <span aria-hidden="true">→</span></Link>
       </section>
       <section className="franchise-section" id="franchises"><div className="section-heading"><div><span className="kicker">TAMIL NADU FRANCHISE DIRECTORY</span><h2>Explore the LunchBox partner network.</h2></div><p>Compare approved franchise partners across Chennai, Madurai, Trichy, and Coimbatore.</p></div><FranchiseNetworkExplorer />{franchiseError && <p className="franchise-message" role="alert">{franchiseError}</p>}{!franchiseError && <FranchiseLocationDashboard franchises={franchises} />}</section>
 
