@@ -288,8 +288,8 @@ export default function PrivateSchoolSearch() {
         <div className="entity-form-section school-intake-section"><h3>Child details</h3><p className="registration-required-note">Enter the details of the child who will receive the meals.</p><div className="selected-school-fields">
           <label>Child&apos;s full name *<input name="child_name" required minLength={2} maxLength={120} /></label>
           <label>Age<input name="child_age" type="number" min="3" max="21" step="1" inputMode="numeric" /></label>
-          <label>Class / grade *<select name="grade" required defaultValue=""><option value="" disabled>Select class</option><option value="LKG">LKG</option><option value="UKG">UKG</option>{Array.from({ length: 12 }, (_, index) => <option value={String(index + 1)} key={index + 1}>Class {index + 1}</option>)}</select></label>
-          <label>Section<input name="section" maxLength={30} placeholder="e.g. A" /></label>
+          <label>Class / Standard *<select name="grade" required defaultValue=""><option value="" disabled>Select class</option>{Array.from({ length: 7 }, (_, index) => index + 6).map((standard) => <option value={String(standard)} key={standard}>Class {standard}</option>)}</select></label>
+          <label>Section *<input name="section" required minLength={1} maxLength={30} placeholder="e.g. A, B, or C" /></label>
         </div></div>
         <div className="entity-form-section school-intake-section"><h3>Child&apos;s meal preferences</h3><p className="registration-required-note">Please list food allergies clearly. LunchBox will verify meal suitability before service begins.</p><div className="selected-school-fields">
           <label>Dietary preference<select name="dietary_preference" defaultValue="vegetarian"><option value="vegetarian">Vegetarian</option><option value="vegan">Vegan</option><option value="no_preference">No preference</option></select></label>
