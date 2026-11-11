@@ -69,9 +69,9 @@ Edit or copy [`config.example.json`](config.example.json):
   "retries": 2,
   "max_schools": 25,
   "gcs_upload": {
-    "enabled": true,
-    "project": "chennaifood",
-    "bucket": "chennaifood",
+    "enabled": false,
+    "project": "YOUR_V2_PROJECT_ID",
+    "bucket": "lunchbox-v2-REPLACE_WITH_UNIQUE_SUFFIX",
     "prefix": "marketing/research/runs"
   }
 }
