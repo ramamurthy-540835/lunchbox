@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { ParentAuthError, verifyStaffRole } from "@/lib/firebase-admin";
 import { firestoreClient } from "@/lib/firestore";
 import { buildOperationsSummary, type OperationsOrder } from "@/lib/operations";
+import { assertV2Isolation } from "@/lib/v2-isolation";
 
 export const runtime = "nodejs";
 
@@ -24,6 +25,7 @@ async function subsidyCost(kitchenId: string, serviceDate: string) {
 }
 
 export async function GET(request: Request) {
+  assertV2Isolation();
   try {
     await verifyStaffRole(request, "admin");
     const url = new URL(request.url);
