@@ -1,6 +1,7 @@
 import { Firestore, FieldValue, Timestamp } from "@google-cloud/firestore";
 import type { OrderRecord } from "@/lib/gcp";
 import { FREE_MEALS_DAILY_CAP, canReserveDailyFreeMeals } from "@/lib/pricing";
+import { assertV2Isolation } from "@/lib/v2-isolation";
 
 export type CapacityReservation = {
   serviceDate: string;
@@ -38,6 +39,7 @@ export class FreeMealCapError extends OrderConflictError {
 }
 
 export function firestoreClient() {
+  assertV2Isolation();
   if (!projectId) throw new Error("GCP_PROJECT_ID is required for transactional orders.");
   return new Firestore({ projectId, databaseId });
 }
@@ -51,6 +53,7 @@ function cutoffAt(serviceDate: string, configuredCutoff = cutoffTime) {
 }
 
 export function isFirestoreConfigured() {
+  assertV2Isolation();
   return Boolean(projectId);
 }
 
@@ -306,6 +309,7 @@ export async function getOwnedStudent(parentUid: string, studentId: string) {
     school_name?: string;
     city?: string;
     grade_band: string;
+    class_standard?: number;
     section?: string;
     roll_number?: string;
     relationship?: "mother" | "father" | "guardian";
