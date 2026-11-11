@@ -1,10 +1,12 @@
 import { BigQuery } from "@google-cloud/bigquery";
 import type { SchoolAnalytics, SchoolSearchMeta, SchoolSearchParams, SchoolSearchResult } from "@/lib/school-locator/types";
+import { assertV2Isolation } from "@/lib/v2-isolation";
 
 function client() {
-  const projectId = process.env.GCP_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || "chennaifood";
-  const configured = process.env.SCHOOL_DIRECTORY_BIGQUERY_DATASET || process.env.BIGQUERY_DATASET;
-  const datasetId = configured === "school_directory" ? configured : "school_directory";
+  assertV2Isolation();
+  const projectId = process.env.GCP_PROJECT_ID || process.env.FIREBASE_PROJECT_ID;
+  if (!projectId) throw new Error("GCP_PROJECT_ID is required for school analytics.");
+  const datasetId = process.env.SCHOOL_DIRECTORY_BIGQUERY_DATASET || "school_directory";
   return { projectId, datasetId, location: process.env.BIGQUERY_LOCATION || "asia-south1", bigquery: new BigQuery({ projectId }) };
 }
 
