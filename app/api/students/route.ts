@@ -4,6 +4,7 @@ import { ParentAuthError, verifyParent } from "@/lib/firebase-admin";
 import { firestoreClient } from "@/lib/firestore";
 import { getCatalog } from "@/lib/catalog";
 import { enforceRateLimit, RateLimitError } from "@/lib/hardening";
+import { gradeBandForStandard, normalizeSection } from "@/lib/student-registration";
 
 export const runtime = "nodejs";
 
@@ -11,6 +12,7 @@ type IncomingStudent = {
   studentName?: unknown;
   schoolId?: unknown;
   gradeBand?: unknown;
+  classStandard?: unknown;
   section?: unknown;
   rollNumber?: unknown;
   relationship?: unknown;
@@ -56,10 +58,11 @@ export async function POST(request: Request) {
     if (!parent) throw new ParentAuthError("Parent sign-in is required.");
     await enforceRateLimit("create_student", parent.uid, 10, 3600);
     const body = (await request.json()) as IncomingStudent;
-    const studentName = cleanText(body.studentName, 100);
+    const studentName = typeof body.studentName === "string" ? body.studentName.trim().replace(/\s+/g, " ") : "";
     const schoolId = typeof body.schoolId === "string" ? body.schoolId : "";
     const gradeBand = typeof body.gradeBand === "string" ? body.gradeBand : "";
-    const section = cleanText(body.section, 20);
+    const classStandard = Number(body.classStandard);
+    const section = normalizeSection(body.section);
     const rollNumber = cleanText(body.rollNumber, 40);
     const relationship = cleanText(body.relationship, 20).toLowerCase();
     const homeAddress = {
@@ -76,8 +79,8 @@ export async function POST(request: Request) {
     const catalog = await getCatalog();
     const school = catalog.schools.find((entry) => entry.id === schoolId);
 
-    if (studentName.length < 2 || studentName.length > 100 || !school || !(gradeBand in catalog.gradePlans)) {
-      return NextResponse.json({ error: "Enter a valid student name, school and grade." }, { status: 400 });
+    if (studentName.length < 2 || studentName.length > 100 || !school || !(gradeBand in catalog.gradePlans) || !section || gradeBandForStandard(classStandard) !== gradeBand) {
+      return NextResponse.json({ error: "Enter a valid student name, school, class from 6 through 12, and section." }, { status: 400 });
     }
     if (!relationships.has(relationship)) {
       return NextResponse.json({ error: "Choose the parent relationship to the student." }, { status: 400 });
@@ -112,6 +115,7 @@ export async function POST(request: Request) {
       school_name: school.name,
       city: school.city,
       grade_band: gradeBand,
+      class_standard: classStandard,
       section,
       roll_number: rollNumber,
       relationship,
@@ -129,6 +133,7 @@ export async function POST(request: Request) {
       studentName,
       schoolId,
       gradeBand,
+      classStandard,
       section,
       rollNumber,
       relationship,
