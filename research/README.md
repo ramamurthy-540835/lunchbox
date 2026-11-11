@@ -26,7 +26,7 @@ School CSV or OSM/Overpass
  optional timestamped GCS run folder
 ```
 
-The Python research package is intentionally separate from the existing Next.js marketing UI. Its exports can later be uploaded to the existing `gs://chennaifood/marketing/` prefix or loaded into the existing BigQuery marketing tables after review.
+The Python research package is intentionally separate from the Next.js marketing UI. V2 exports must use a dedicated V2 bucket and project; do not upload them to V1 storage or load them into V1 BigQuery tables.
 
 ## Data sources and permitted use
 
@@ -134,19 +134,19 @@ Coordinates and a source URL are mandatory. Unknown public fields are written as
 
 The selected output directory receives:
 
-- `apartments_near_schools.csv` — one apartment-to-school relationship per row
-- `apartments_near_schools.xlsx` — Excel workbook with relationship and locality-summary sheets
-- `locality_summary.csv` — locality-level school/apartment overlap
-- `research_log.csv` — provider, operation, source endpoint, query summary, attempt, duration, result count, and error
+- `apartments_near_schools.csv` â€” one apartment-to-school relationship per row
+- `apartments_near_schools.xlsx` â€” Excel workbook with relationship and locality-summary sheets
+- `locality_summary.csv` â€” locality-level school/apartment overlap
+- `research_log.csv` â€” provider, operation, source endpoint, query summary, attempt, duration, result count, and error
 
-`School Distance KM` is straight-line Haversine distance. `Estimated Travel Distance KM` is explicitly labelled as a rough `straight-line × 1.25` estimate, not a routed journey. A future routing adapter may replace it with a licensed routing source.
+`School Distance KM` is straight-line Haversine distance. `Estimated Travel Distance KM` is explicitly labelled as a rough `straight-line Ã— 1.25` estimate, not a routed journey. A future routing adapter may replace it with a licensed routing source.
 
 ## Local and GCP storage
 
-When `gcs_upload.enabled` is `true`, the collector always writes and closes every local output first. It then uploads the same four files to a unique UTC run directory:
+When `gcs_upload.enabled` is `true`, the collector always writes and closes every local output first. For V2, configure a V2-only project and bucket beginning with `lunchbox-v2-`. It then uploads the same four files to a unique UTC run directory:
 
 ```text
-gs://chennaifood/marketing/research/runs/2026-08-08T073045Z/
+gs://lunchbox-v2-YOUR-UNIQUE-SUFFIX/marketing/research/runs/2026-08-08T073045Z/
 ```
 
 This prevents one run from overwriting another and keeps the local files available if cloud upload fails. GCS upload uses the authenticated Google Cloud CLI account and configured project. Use `--no-gcs-upload` for tests, offline work, or intentionally local-only runs.
@@ -155,8 +155,8 @@ Verify authentication before a production run:
 
 ```powershell
 gcloud auth list
-gcloud config set project chennaifood
-gcloud storage ls gs://chennaifood/marketing/research/runs/
+gcloud config set project YOUR_V2_PROJECT_ID
+gcloud storage ls gs://lunchbox-v2-YOUR-UNIQUE-SUFFIX/marketing/research/runs/
 ```
 
 ## Deduplication and scoring
@@ -195,3 +195,4 @@ The suite covers distance calculation, estimated-distance labelling, normalizati
 ## Sample data warning
 
 Everything under `research/sample/` uses invented names and `example.invalid` URLs. The sample proves the pipeline and export formats only; it is not verified Chennai research.
+
