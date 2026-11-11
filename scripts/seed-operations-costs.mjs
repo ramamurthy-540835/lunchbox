@@ -1,5 +1,9 @@
 import { Firestore, FieldValue } from "@google-cloud/firestore";
 
+if (process.env.LUNCHBOX_ENV === "v2") {
+  throw new Error("This seeder contains non-synthetic V1 operations data and must not run in V2.");
+}
+
 const projectId = process.env.GCP_PROJECT_ID;
 const databaseId = process.env.FIRESTORE_DATABASE_ID || "(default)";
 if (!projectId) throw new Error("GCP_PROJECT_ID is required.");
@@ -36,3 +40,4 @@ await firestore.collection("operations_plans").doc("default").set({
   updated_at: FieldValue.serverTimestamp(),
 }, { merge: true });
 process.stdout.write(`Seeded operations_plans/default in ${projectId}.\n`);
+
