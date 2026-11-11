@@ -4,7 +4,17 @@ if (process.env.CONFIRM_FRANCHISE_TERRITORY_SEED !== "yes") {
   throw new Error("Set CONFIRM_FRANCHISE_TERRITORY_SEED=yes before publishing territory opportunities.");
 }
 
-const db = new Firestore({ projectId: process.env.GOOGLE_CLOUD_PROJECT || "chennaifood" });
+const projectId = process.env.LUNCHBOX_ENV === "v2"
+  ? process.env.LUNCHBOX_V2_PROJECT_ID
+  : process.env.GOOGLE_CLOUD_PROJECT;
+if (!projectId) throw new Error("Set an explicit V2 project ID or GOOGLE_CLOUD_PROJECT before seeding.");
+if (process.env.LUNCHBOX_ENV === "v2" && process.env.GCP_PROJECT_ID !== projectId) {
+  throw new Error("V2 seed project must match GCP_PROJECT_ID.");
+}
+const db = new Firestore({
+  projectId,
+  databaseId: process.env.FIRESTORE_DATABASE_ID || "(default)",
+});
 const locations = [
   ["kasimedu", "Kasimedu", "north", "North Chennai", 13.1261, 80.2930],
   ["washermenpet", "Washermenpet", "north", "North Chennai", 13.1149, 80.2879],
@@ -41,3 +51,4 @@ for (const [index, [id, name, zoneId, zoneName, lat, lng]] of locations.entries(
 }
 await batch.commit();
 console.log(`Published ${locations.length} Chennai franchise opportunity locations.`);
+
