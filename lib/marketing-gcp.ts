@@ -1,5 +1,6 @@
 import { BigQuery } from "@google-cloud/bigquery";
 import type { MarketingLead } from "@/lib/marketing";
+import { assertV2Isolation } from "@/lib/v2-isolation";
 
 const projectId = process.env.GCP_PROJECT_ID;
 const datasetId = process.env.BIGQUERY_DATASET || "school_lunch";
@@ -7,6 +8,7 @@ const locationsTable = process.env.BIGQUERY_MARKETING_LOCATIONS_TABLE || "market
 const searchesTable = process.env.BIGQUERY_MARKETING_SEARCHES_TABLE || "marketing_discovery_runs";
 
 function client() {
+  assertV2Isolation();
   return projectId ? new BigQuery({ projectId }) : null;
 }
 
