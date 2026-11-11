@@ -7,6 +7,7 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { cities as fallbackCities, gradePlans as fallbackGradePlans, meals as fallbackMeals, schools as fallbackSchools, type GradePlan, type Meal, type School } from "@/lib/meals";
 import { firebaseAuth, isFirebaseClientConfigured } from "@/lib/firebase-client";
 import { isMealAudience, mealAudiencePrice, type MealAudience } from "@/lib/pricing";
+import { standardsForGradeBand } from "@/lib/student-registration";
 
 type Cart = Record<string, number>;
 type CheckoutState = { cart: Cart; city: string; schoolId: string; gradeBand: string; audience?: MealAudience };
@@ -171,7 +172,7 @@ export default function CheckoutPage() {
         <div className="success-confetti" aria-hidden="true"><i>✦</i><i>★</i><i>✦</i><i>★</i></div>
         <span className="success-box">🍱</span>
         <h1>Thanks for your order!</h1>
-        <p>Your Lunchbox is on its way! ✨</p>
+        {process.env.NEXT_PUBLIC_LUNCHBOX_ENV === "v2" ? <p>V2 test order recorded. No payment was captured and no food delivery was scheduled.</p> : <p>Your Lunchbox is on its way! ✨</p>}
         <small>Order {confirmation.slice(0, 13)} is confirmed. The school coordinator will receive the delivery details.</small>
         <Link className="primary-button" href="/">Back to menu <span>→</span></Link>
       </section>
@@ -211,7 +212,8 @@ export default function CheckoutPage() {
             <div className="student-profile-panel">
               <label>Student full name<input name="studentName" required minLength={2} maxLength={100} placeholder="e.g. Nila Raman" /></label>
               <div className="form-grid">
-                <label>Section, optional<input name="profileSection" maxLength={20} placeholder="e.g. B" /></label>
+                <label>Class / Standard *<select name="profileClassStandard" required defaultValue=""><option value="" disabled>Select class</option>{standardsForGradeBand(gradeBand).map((standard) => <option value={standard} key={standard}>Class {standard}</option>)}</select></label>
+                <label>Section *<input name="profileSection" required minLength={1} maxLength={30} placeholder="e.g. B" /></label>
                 <label>Roll/admission no., optional<input name="profileRollNumber" maxLength={40} placeholder="e.g. A1024" /></label>
               </div>
               <label>Parent relationship<select name="profileRelationship" required defaultValue="mother"><option value="mother">Mother</option><option value="father">Father</option><option value="guardian">Guardian</option></select></label>
