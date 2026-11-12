@@ -12,7 +12,7 @@ V2 is built only from the `lunchbox2` branch using `cloudbuild.v2.yaml`, a V2-on
 6. The default Firestore database is safe here because the V2 project is separate. The build creates it if needed and deploys the repositoryâ€™s deny-all browser rules and required indexes. The server uses Firebase Admin and the V2 runtime identity.
 7. Payments and franchise payment links are disabled for V2. Only enable test Razorpay credentials deliberately; V2 rejects live-key payment setup.
 
-The V2 backend checks project, Firebase, BigQuery, Firestore, and bucket configuration before using those clients. The Cloud Build preflight also rejects a build outside `lunchbox2` and refuses to deploy when the build project equals the verified V1 project. The V2 build identity has no V1 permissions, so it cannot change or inspect V1 services.
+The V2 backend checks the verified V1 project ID against the V2 project ID, then validates Firebase, BigQuery, Firestore, and bucket configuration before using those clients. Cloud Run receives the verified V1 project ID from the guarded build substitution. The Cloud Build preflight also rejects a build outside `lunchbox2` and refuses to deploy when the build project equals the verified V1 project. The V2 build identity has no V1 permissions, so it cannot change or inspect V1 services.
 
 ## Cloud Build trigger
 
