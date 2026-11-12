@@ -4,17 +4,18 @@ if (process.env.CONFIRM_FRANCHISE_TERRITORY_SEED !== "yes") {
   throw new Error("Set CONFIRM_FRANCHISE_TERRITORY_SEED=yes before publishing territory opportunities.");
 }
 
-const projectId = process.env.LUNCHBOX_ENV === "v2"
-  ? process.env.LUNCHBOX_V2_PROJECT_ID
-  : process.env.GOOGLE_CLOUD_PROJECT;
-if (!projectId) throw new Error("Set an explicit V2 project ID or GOOGLE_CLOUD_PROJECT before seeding.");
-if (process.env.LUNCHBOX_ENV === "v2" && process.env.GCP_PROJECT_ID !== projectId) {
+if (process.env.LUNCHBOX_ENV !== "v2") {
+  throw new Error("This V2-only seed requires LUNCHBOX_ENV=v2.");
+}
+const projectId = process.env.LUNCHBOX_V2_PROJECT_ID;
+if (!projectId) throw new Error("Set LUNCHBOX_V2_PROJECT_ID before seeding.");
+if (process.env.GCP_PROJECT_ID !== projectId) {
   throw new Error("V2 seed project must match GCP_PROJECT_ID.");
 }
-if (process.env.LUNCHBOX_ENV === "v2" && !process.env.LUNCHBOX_V1_PROJECT_ID) {
+if (!process.env.LUNCHBOX_V1_PROJECT_ID) {
   throw new Error("Set the verified LUNCHBOX_V1_PROJECT_ID before running a V2 seed.");
 }
-if (process.env.LUNCHBOX_ENV === "v2" && projectId === process.env.LUNCHBOX_V1_PROJECT_ID) {
+if (projectId === process.env.LUNCHBOX_V1_PROJECT_ID) {
   throw new Error("Refusing to seed franchise locations into the V1 project.");
 }
 const db = new Firestore({
