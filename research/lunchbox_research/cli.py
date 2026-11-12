@@ -130,12 +130,13 @@ def main(argv: list[str] | None = None) -> int:
                     raise ValueError("Configure an explicit V2 project before enabling GCS upload.")
                 if str(upload_config.get("bucket", "")).strip() in {"", "chennaifood"} or not str(upload_config.get("bucket", "")).startswith("lunchbox-v2-"):
                     raise ValueError("Configure a dedicated bucket whose name starts with lunchbox-v2-.")
-                if os.environ.get("LUNCHBOX_ENV") == "v2":
-                    v1_project = os.environ.get("LUNCHBOX_V1_PROJECT_ID", "").strip()
-                    v2_project = os.environ.get("LUNCHBOX_V2_PROJECT_ID", "").strip()
-                    upload_project = str(upload_config.get("project", "")).strip()
-                    if not v1_project or not v2_project or v2_project == v1_project or upload_project != v2_project:
-                        raise ValueError("V2 uploads require distinct verified V1 and V2 project IDs matching the upload project.")
+                if os.environ.get("LUNCHBOX_ENV") != "v2":
+                    raise ValueError("GCS uploads from this branch require LUNCHBOX_ENV=v2.")
+                v1_project = os.environ.get("LUNCHBOX_V1_PROJECT_ID", "").strip()
+                v2_project = os.environ.get("LUNCHBOX_V2_PROJECT_ID", "").strip()
+                upload_project = str(upload_config.get("project", "")).strip()
+                if not v1_project or not v2_project or v2_project == v1_project or upload_project != v2_project:
+                    raise ValueError("V2 uploads require distinct verified V1 and V2 project IDs matching the upload project.")
                 gcs_destination = upload_files(
                     [csv_path, xlsx_path, summary_path, audit_path],
                     bucket=str(upload_config["bucket"]),
