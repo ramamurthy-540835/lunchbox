@@ -143,7 +143,7 @@ The selected output directory receives:
 
 ## Local and GCP storage
 
-When `gcs_upload.enabled` is `true`, the collector always writes and closes every local output first. For V2, configure a V2-only project and bucket beginning with `lunchbox-v2-`. It then uploads the same four files to a unique UTC run directory:
+When `gcs_upload.enabled` is `true`, the collector always writes and closes every local output first. For V2, configure a V2-only project and bucket beginning with `lunchbox-v2-`, and set `LUNCHBOX_ENV=v2`, `LUNCHBOX_V1_PROJECT_ID` to the verified production project ID, and `LUNCHBOX_V2_PROJECT_ID` to the separate upload project ID in the process environment. It then uploads the same four files to a unique UTC run directory:
 
 ```text
 gs://lunchbox-v2-YOUR-UNIQUE-SUFFIX/marketing/research/runs/2026-08-08T073045Z/
