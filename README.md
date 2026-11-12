@@ -74,6 +74,7 @@ Supported server environment variables:
 
 ```text
 LUNCHBOX_ENV=v2
+LUNCHBOX_V1_PROJECT_ID=<verified-v1-project-id>
 LUNCHBOX_V2_PROJECT_ID=<dedicated-v2-project-id>
 GCP_PROJECT_ID=<same-dedicated-v2-project-id>
 FIREBASE_PROJECT_ID=<same-dedicated-v2-project-id>
