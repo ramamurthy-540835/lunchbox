@@ -1,6 +1,8 @@
-# LunchBox — school lunch ordering starter
+# LunchBox â€” school lunch ordering starter
 
-A responsive Next.js starter for parents ordering balanced vegetarian lunches for students in 6th–12th standard across Chennai, Madurai, Trichy and Coimbatore.
+> **V2 branch safety:** This README is in `lunchbox2`. Use only `.env.v2.example`, `Dockerfile.v2`, and `cloudbuild.v2.yaml` for this branch. The V2 project, Firebase app, Firestore, BigQuery datasets, bucket, secrets, and service account must be separate from V1. Follow [the V2 isolation and deployment guide](docs/lunchbox-v2-isolated-deployment.md). Do not run inherited V1 deployment or data-seeding commands from this branch.
+
+A responsive Next.js starter for parents ordering balanced vegetarian lunches for students in 6thâ€“12th standard across Chennai, Madurai, Trichy and Coimbatore.
 Each lunch packet contains **1 chapati, 1 bowl of rice, sambar, curd, 2 vegetable curries, 1 serving of channa and 1 appalam**. The two vegetable curries rotate daily.
 
 ## Product plan
@@ -14,23 +16,23 @@ Each lunch packet contains **1 chapati, 1 bowl of rice, sambar, curd, 2 vegetabl
 
 ### Recommended phases
 
-1. **Pilot (4–6 weeks):** one kitchen and 2–3 schools per city, preorder only, weekly menu, coordinator-confirmed payment, delivery manifest and support workflow.
-2. **MVP (6–10 weeks):** parent authentication/OTP, Razorpay or school billing, subscriptions, holidays/cut-offs, allergen consent, refunds and operations dashboard.
+1. **Pilot (4â€“6 weeks):** one kitchen and 2â€“3 schools per city, preorder only, weekly menu, coordinator-confirmed payment, delivery manifest and support workflow.
+2. **MVP (6â€“10 weeks):** parent authentication/OTP, Razorpay or school billing, subscriptions, holidays/cut-offs, allergen consent, refunds and operations dashboard.
 3. **Scale:** route optimization, kitchen capacity, inventory forecasting, audit trails, meal feedback and BigQuery dashboards.
 
 ### Nutrition and safety guardrails
 
-The sample menu uses grain/millet, vegetables, protein and fruit/curd with grade-band portion adjustments. Before launch, a qualified pediatric dietitian must approve recipes, portion sizes and nutrition values. Capture allergies explicitly; use separate preparation and packing controls; show ingredients and allergens on every pack. Keep the menu moderate in salt, added sugar and oil, consistent with the ICMR–NIN Dietary Guidelines for Indians (2024). Implement FSSAI licensing, hygiene, temperature, traceability and recall procedures with a food-safety professional.
+The sample menu uses grain/millet, vegetables, protein and fruit/curd with grade-band portion adjustments. Before launch, a qualified pediatric dietitian must approve recipes, portion sizes and nutrition values. Capture allergies explicitly; use separate preparation and packing controls; show ingredients and allergens on every pack. Keep the menu moderate in salt, added sugar and oil, consistent with the ICMRâ€“NIN Dietary Guidelines for Indians (2024). Implement FSSAI licensing, hygiene, temperature, traceability and recall procedures with a food-safety professional.
 
 ## GCP architecture
 
 ```text
 Parent browser
-    │ HTTPS
-    ▼
-Next.js on Cloud Run ── service account / ADC
-    ├── BigQuery: meal catalogue + analytics/order event copy
-    └── Cloud Storage: immutable JSON order packets, menu images and exports
+    â”‚ HTTPS
+    â–¼
+Next.js on Cloud Run â”€â”€ service account / ADC
+    â”œâ”€â”€ BigQuery: meal catalogue + analytics/order event copy
+    â””â”€â”€ Cloud Storage: immutable JSON order packets, menu images and exports
 ```
 
 This starter creates orders and reserves per-kitchen daily capacity in one Firestore transaction. An idempotency key protects retries from creating a second order or consuming capacity twice. It then writes an immutable JSON **order packet** to Cloud Storage and a queryable analytics row to BigQuery. With no GCP environment variables, checkout runs safely in demo mode.
@@ -47,21 +49,21 @@ Recommended resources:
 
 The production build generates a versioned Serwist service worker at `public/sw.js`, precaches the application shell and provides `/~offline` as the document fallback. The manifest includes Android, maskable and Apple icons. PWA generation is disabled during `npm run dev` to prevent stale development caches.
 
-Serviceability follows city → onboarded school → grade. The current school names are explicitly labelled pilot placeholders in `lib/meals.ts`; replace them with approved school records before staging. Orders for unknown or cross-city schools are rejected by the server.
+Serviceability follows city â†’ onboarded school â†’ grade. The current school names are explicitly labelled pilot placeholders in `lib/meals.ts`; replace them with approved school records before staging. Orders for unknown or cross-city schools are rejected by the server.
 
 ## Private School Location Agent
 
 The School Registration page at `/schools/register` uses a server-only location pipeline:
 
 ```text
-City → Zone → 3-character school prefix
-  → Firestore schools directory
-  → 14-day Firestore query cache
-  → Google Places Text Search
-  → SerpAPI Google Maps fallback
-  → normalize / private-school filter / zone resolution / rank / deduplicate
-  → Firestore operational master
-  → deferred BigQuery analytics
+City â†’ Zone â†’ 3-character school prefix
+  â†’ Firestore schools directory
+  â†’ 14-day Firestore query cache
+  â†’ Google Places Text Search
+  â†’ SerpAPI Google Maps fallback
+  â†’ normalize / private-school filter / zone resolution / rank / deduplicate
+  â†’ Firestore operational master
+  â†’ deferred BigQuery analytics
 ```
 
 The centralized territory model in `lib/school-locator/territories.ts` defines exactly four cities and five zones per city. The UI waits 400 ms, cancels stale requests, caps results at ten, supports keyboard selection, can retry across the full city, and provides an unverified manual-entry fallback. Selecting a result auto-fills the normalized address, locality, zone, city, state, pincode, coordinates and provider place ID.
@@ -71,13 +73,17 @@ External providers are called only by Cloud Run. Never expose `GOOGLE_MAPS_API_K
 Supported server environment variables:
 
 ```text
-GCP_PROJECT_ID=chennaifood
-FIREBASE_PROJECT_ID=chennaifood
+LUNCHBOX_ENV=v2
+LUNCHBOX_V2_PROJECT_ID=<dedicated-v2-project-id>
+GCP_PROJECT_ID=<same-dedicated-v2-project-id>
+FIREBASE_PROJECT_ID=<same-dedicated-v2-project-id>
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=<same-dedicated-v2-project-id>
 FIRESTORE_DATABASE_ID=(default)
 GOOGLE_MAPS_API_KEY=<Secret Manager>
 GOOGLE_PLACES_API_KEY=<optional separate Secret Manager key>
 SERPAPI_API_KEY=<Secret Manager>
-SCHOOL_DIRECTORY_BIGQUERY_DATASET=school_directory
+SCHOOL_DIRECTORY_BIGQUERY_DATASET=school_directory_v2
+GCS_BUCKET=lunchbox-v2-<unique-suffix>
 BIGQUERY_LOCATION=asia-south1
 SCHOOL_DISCOVERY_TASK_SECRET=<Secret Manager>
 ```
@@ -94,14 +100,12 @@ Operational Firestore collections:
 Deploy the single required school autocomplete composite index and the deny-all browser rules with:
 
 ```bash
-firebase deploy --only firestore:rules,firestore:indexes --project chennaifood
+firebase deploy --only firestore:rules,firestore:indexes --project <dedicated-v2-project-id>
 ```
 
-Create the analytics dataset, tables and future-ready views by replacing `YOUR_PROJECT_ID` in `infrastructure/school-directory.sql` with `chennaifood`, then running:
+Create the analytics dataset, tables and future-ready views only in the dedicated V2 project and use the V2 schema provisioning in `cloudbuild.v2.yaml`; do not apply the inherited V1 dataset instructions to V2.
 
-```bash
-bq query --project_id=chennaifood --location=asia-south1 --use_legacy_sql=false < infrastructure/school-directory.sql
-```
+V2 schema setup is documented in [the V2 isolation and deployment guide](docs/lunchbox-v2-isolated-deployment.md).
 
 The schema contains `school_master`, `school_search_events`, `school_registration_events`, and `school_provider_usage`, plus city, zone, popularity, registration, student-strength and potential-franchise views. Analytics writes run after the user response and failures never block autocomplete or registration.
 
@@ -130,14 +134,14 @@ The partner registration landing page at `/register` links to School Registratio
 Both new flows reuse the existing four-city/twenty-zone territory model and server-side provider transport:
 
 ```text
-City → Zone → 3-character entity prefix
-  → Firestore offices/companies/colleges master
-  → 14-day entity_search_cache
-  → Google Places Text Search
-  → SerpAPI Google Maps fallback
-  → profile filter / normalize / resolve zone / rank / deduplicate
-  → Firestore operational master
-  → deferred BigQuery analytics
+City â†’ Zone â†’ 3-character entity prefix
+  â†’ Firestore offices/companies/colleges master
+  â†’ 14-day entity_search_cache
+  â†’ Google Places Text Search
+  â†’ SerpAPI Google Maps fallback
+  â†’ profile filter / normalize / resolve zone / rank / deduplicate
+  â†’ Firestore operational master
+  â†’ deferred BigQuery analytics
 ```
 
 `lib/entity-locator/profiles.ts` defines Office, Company, and College query templates, preferred categories, and conservative exclusions. They share the provider, repository, search service, autocomplete, timeout, request-deduplication, rate-limiting, and analytics paths.
@@ -167,8 +171,8 @@ The existing server-only `GOOGLE_PLACES_API_KEY`/`GOOGLE_MAPS_API_KEY` and `SERP
 `/admin/registrations` is a Firebase-admin-protected acquisition pipeline spanning School, Office, Company, and College registrations. It provides type/status/city/zone/text filters, duplicate indicators, CSV export, registration details, assigned owner, follow-up date, internal notes, and these workflow states:
 
 ```text
-Received → Under Review → Contacted → Qualified → Pilot Scheduled → Active
-                                                               ↘ Rejected
+Received â†’ Under Review â†’ Contacted â†’ Qualified â†’ Pilot Scheduled â†’ Active
+                                                               â†˜ Rejected
 ```
 
 Updates are written to the original Firestore registration document, append a workflow-history entry, and create an `audit_logs` record. Contact details are returned only after the server validates the Firebase `admin` custom claim; unauthenticated API requests receive HTTP 403.
@@ -191,26 +195,13 @@ Discovery runs and saved locations are written to the `marketing_discovery_runs`
 
 ### Reusable school-to-apartment research
 
-The privacy-safe Python research module in [`research/`](research/README.md) produces deduplicated school-to-apartment proximity datasets, locality summaries, Excel exports and source audit logs. It stores completed outputs locally and can automatically copy the same files to timestamped folders under `gs://chennaifood/marketing/research/runs/`. It supports approved school CSV input, configurable Chennai localities/radii and a rate-limited OpenStreetMap/Overpass provider. It does not collect resident- or child-level personal data.
+The privacy-safe Python research module in [`research/`](research/README.md) produces deduplicated school-to-apartment proximity datasets, locality summaries, Excel exports and source audit logs. It stores outputs locally by default. Optional upload must use the separately configured V2 project and V2-only bucket; see `research/README.md`. It supports approved school CSV input, configurable Chennai localities/radii and a rate-limited OpenStreetMap/Overpass provider. It does not collect resident- or child-level personal data.
 
-Run `npm test` for the launch-critical unit suite. Cloud Run liveness can use `/api/health`; readiness can use `/api/health?ready=1`, which also checks Firestore access. Rate-limit documents in `rate_limits` should have Firestore TTL enabled on `expires_at`.
+Run `npm run test` for the launch-critical unit suite. Cloud Run liveness can use `/api/health`; readiness can use `/api/health?ready=1`, which also checks Firestore access. Rate-limit documents in `rate_limits` should have Firestore TTL enabled on `expires_at`.
 
 ## Configure Google Cloud
 
-1. Create a private bucket in `asia-south1` and enable uniform bucket-level access.
-2. Replace `YOUR_PROJECT_ID` in `infrastructure/bigquery.sql`, then run it in BigQuery.
-3. Replace `YOUR_PROJECT_ID` in `infrastructure/school-directory.sql`, then run it to create the school analytics layer.
-4. Replace `YOUR_PROJECT_ID` in `infrastructure/seed.sql` and run it to load the pilot cities, kitchens, schools and delivery routes. The `MERGE` statements are safe to rerun. The capacity and cutoff values are placeholders and must be approved before launch.
-5. Create a Firestore Native database in `asia-south1`; use the default database or set `FIRESTORE_DATABASE_ID`.
-6. Enable Firebase Phone authentication, register the production domain, configure permitted SMS regions, and create a Firebase Web app.
-7. Set the four `NEXT_PUBLIC_FIREBASE_*` Web app values plus `GCP_PROJECT_ID`, `BIGQUERY_DATASET`, `BIGQUERY_ORDERS_TABLE`, `GCS_BUCKET`, `DEFAULT_DAILY_CAPACITY`, and `ORDER_CUTOFF_IST` on Cloud Run.
-8. Give the Cloud Run service identity Firestore user access plus the least-privilege BigQuery and Storage roles listed above. Production orders require a valid Firebase ID token whenever `GCP_PROJECT_ID` is configured.
-9. Deploy `infrastructure/firestore.rules` and `infrastructure/firestore.indexes.json`. They intentionally deny direct browser access because all school and parent data is accessed through server APIs.
-10. Deploy from the project directory:
-
-```bash
-gcloud run deploy lunchbox --source . --region asia-south1 --allow-unauthenticated
-```
+Use the isolated V2 project setup, substitutions, and Cloud Build trigger documented in [the V2 isolation and deployment guide](docs/lunchbox-v2-isolated-deployment.md). V2 payments are disabled by default. Do not deploy the inherited `cloudbuild.yaml` or `Dockerfile` from this branch.
 
 ### Franchise details from Firebase Storage
 
@@ -246,7 +237,7 @@ The `/operations` screen uses `roles` plus scoped custom claims: `kitchen_ids`, 
 
 ### Payments
 
-When the three `RAZORPAY_*` variables are configured, orders begin as `PENDING_PAYMENT` and consume pending—not confirmed—capacity. Checkout creates a Razorpay Order on the server. Fulfilment requires a captured INR payment with matching amount and a valid signature. Configure the Razorpay Dashboard webhook URL as `/api/webhooks/razorpay` and subscribe to `payment.captured`, `order.paid`, `refund.created`, `refund.processed`, and `refund.failed`. Store API and webhook secrets in Secret Manager; the webhook secret must be separate from the API key secret.
+When the three `RAZORPAY_*` variables are configured, orders begin as `PENDING_PAYMENT` and consume pendingâ€”not confirmedâ€”capacity. Checkout creates a Razorpay Order on the server. Fulfilment requires a captured INR payment with matching amount and a valid signature. Configure the Razorpay Dashboard webhook URL as `/api/webhooks/razorpay` and subscribe to `payment.captured`, `order.paid`, `refund.created`, `refund.processed`, and `refund.failed`. Store API and webhook secrets in Secret Manager; the webhook secret must be separate from the API key secret.
 
 Run `POST /api/tasks/expire-payments` every minute from Cloud Scheduler with the `X-Task-Secret` header. It expires abandoned holds after `PAYMENT_HOLD_MINUTES` and releases pending capacity atomically. Deploy `infrastructure/firestore.indexes.json` before enabling this task. Full refunds are available through the admin payments API only before every selected meal cutoff; they use Razorpay refund idempotency and release confirmed capacity exactly once.
 
@@ -276,23 +267,22 @@ For short-lived development only, `MARKETING_OS_PUBLIC=true` removes the Marketi
 - Payment idempotency, webhook verification, cancellation and refund handling
 - FSSAI-approved kitchen/transport SOPs and batch/temperature logs
 - Allergy acknowledgements and an emergency escalation process
-- Consent, encryption, audit logs, data minimization and retention for children’s data
+- Consent, encryption, audit logs, data minimization and retention for childrenâ€™s data
 - Tests, monitoring, CI/CD and separate development/staging/production projects
 
 ### Franchise territory planner and Cloud Build
 
-The franchise opportunity drawer uses the Firestore `franchise_locations` collection to present city → region → service-area selection. Each document can set `city`, `zoneId`/`regionId`, `zoneName`/`regionName`, `plannedFranchiseCount`, `franchiseCount`, `dailyStudentCapacity`, `studentCount`, `lat`, and `lng`. The network target is 198 franchises and the default capacity is 1,500 students per franchise per day. Run the guarded seed to publish the 198-slot Chennai plan:
+The franchise opportunity drawer uses the Firestore `franchise_locations` collection to present city â†’ region â†’ service-area selection. Each document can set `city`, `zoneId`/`regionId`, `zoneName`/`regionName`, `plannedFranchiseCount`, `franchiseCount`, `dailyStudentCapacity`, `studentCount`, `lat`, and `lng`. The network target is 198 franchises and the default capacity is 1,500 students per franchise per day. Run the guarded seed to publish the 198-slot Chennai plan:
 
 ```bash
-CONFIRM_FRANCHISE_TERRITORY_SEED=yes GOOGLE_CLOUD_PROJECT=YOUR_PROJECT_ID node scripts/seed-chennai-franchise-locations.mjs
+CONFIRM_FRANCHISE_TERRITORY_SEED=yes LUNCHBOX_ENV=v2 LUNCHBOX_V2_PROJECT_ID=YOUR_V2_PROJECT_ID GCP_PROJECT_ID=YOUR_V2_PROJECT_ID FIRESTORE_DATABASE_ID='(default)' node scripts/seed-chennai-franchise-locations.mjs
 ```
 
 The interactive map requires a browser/referrer-restricted Maps JavaScript API key stored in Secret Manager as `google-maps-browser-api-key`. Keep server-side Places credentials separate.
 
-Create an Artifact Registry Docker repository named `lunchbox`, grant the Cloud Build service account permission to push images, deploy Cloud Run, act as the runtime service account, and access the browser Maps secret, then submit:
+V2 uses its own Artifact Registry repository, build identity, runtime service account, image, and Cloud Run service. Configure the trigger as described in [the V2 isolation and deployment guide](docs/lunchbox-v2-isolated-deployment.md):
 
-```bash
-gcloud builds submit --project YOUR_PROJECT_ID --config cloudbuild.yaml .
-```
+Cloud Build trigger: `lunchbox-v2-lunchbox2`, matching only `^lunchbox2$` and using `cloudbuild.v2.yaml`.
 
-Override `_REGION`, `_SERVICE`, `_REPOSITORY`, or `_GOOGLE_MAPS_BROWSER_SECRET` with Cloud Build substitutions when the deployed names differ.
+Do not change the existing V1 trigger or service.
+
