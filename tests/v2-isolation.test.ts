@@ -3,6 +3,7 @@ import { v2IsolationError } from "@/lib/v2-isolation";
 
 const isolated = {
   LUNCHBOX_ENV: "v2",
+  LUNCHBOX_V1_PROJECT_ID: "lunchbox-production-456",
   LUNCHBOX_V2_PROJECT_ID: "lunchbox-dev-123",
   GCP_PROJECT_ID: "lunchbox-dev-123",
   FIREBASE_PROJECT_ID: "lunchbox-dev-123",
@@ -20,6 +21,11 @@ describe("V2 resource isolation", () => {
 
   it("rejects a V1 project target", () => {
     expect(v2IsolationError({ ...isolated, GCP_PROJECT_ID: "chennaifood" })).toMatch(/dedicated/i);
+    expect(v2IsolationError({ ...isolated, LUNCHBOX_V2_PROJECT_ID: isolated.LUNCHBOX_V1_PROJECT_ID, GCP_PROJECT_ID: isolated.LUNCHBOX_V1_PROJECT_ID })).toMatch(/different Google Cloud projects/i);
+  });
+
+  it("requires the verified V1 project identifier", () => {
+    expect(v2IsolationError({ ...isolated, LUNCHBOX_V1_PROJECT_ID: undefined })).toMatch(/verified LUNCHBOX_V1_PROJECT_ID/i);
   });
 
   it("rejects production or missing data resources", () => {
@@ -32,3 +38,4 @@ describe("V2 resource isolation", () => {
     expect(v2IsolationError({ GCP_PROJECT_ID: "chennaifood" })).toBeNull();
   });
 });
+
