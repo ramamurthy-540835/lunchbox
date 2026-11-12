@@ -2,6 +2,8 @@
 
 V2 is built only from the `lunchbox2` branch using `cloudbuild.v2.yaml`, a V2-only Artifact Registry repository, and the `lunchbox-v2` Cloud Run service. `Dockerfile.v2` has no V1 Firebase defaults. The existing `cloudbuild.yaml` and `Dockerfile` are unchanged.
 
+The selected V1 project ID is `chennaifood`; the selected V2 project ID is `chennaifood-lunch`. The V2 project ID was confirmed by the user. Before deployment, verify that this project is dedicated to V2 and that it has the required Firebase app, Cloud Build identity, runtime service account, and billing configuration. The build refuses to run if its Cloud Build project matches `chennaifood`.
+
 ## Isolation requirements
 
 1. Use a dedicated Google Cloud project that is different from the verified V1 project. Enable Firebase on that V2 project and create a Firebase Web app there. Do not reuse V1 Firebase configuration.
@@ -20,19 +22,19 @@ Connect this GitHub repository to Cloud Build if no GitHub connection exists, th
 
 ```powershell
 gcloud builds triggers create github `
-  --project=YOUR_V2_PROJECT_ID `
+  --project=chennaifood-lunch `
   --name=lunchbox-v2-lunchbox2 `
   --repo-owner=ramamurthy-540835 `
   --repo-name=lunchbox `
   --branch-pattern='^lunchbox2$' `
   --build-config=cloudbuild.v2.yaml `
-  --service-account=projects/YOUR_V2_PROJECT_ID/serviceAccounts/YOUR_V2_BUILD_SA_EMAIL `
-  --substitutions=_V1_PROJECT_ID=VERIFIED_V1_PROJECT_ID,_V2_RUNTIME_SERVICE_ACCOUNT=YOUR_V2_RUNTIME_SA_EMAIL,_V2_GCS_BUCKET=lunchbox-v2-REPLACE_WITH_UNIQUE_SUFFIX,_V2_BQ_DATASET=lunchbox_v2_orders,_V2_FIREBASE_WEB_API_KEY=YOUR_V2_WEB_API_KEY,_V2_FIREBASE_APP_ID=YOUR_V2_WEB_APP_ID
+  --service-account=projects/chennaifood-lunch/serviceAccounts/YOUR_V2_BUILD_SA_EMAIL `
+  --substitutions=_V1_PROJECT_ID=chennaifood,_V2_RUNTIME_SERVICE_ACCOUNT=YOUR_V2_RUNTIME_SA_EMAIL,_V2_GCS_BUCKET=lunchbox-v2-REPLACE_WITH_UNIQUE_SUFFIX,_V2_BQ_DATASET=lunchbox_v2_orders,_V2_FIREBASE_WEB_API_KEY=YOUR_V2_WEB_API_KEY,_V2_FIREBASE_APP_ID=YOUR_V2_WEB_APP_ID
 ```
 
 If the repository is connected through a second-generation Cloud Build repository connection, use its full `projects/.../locations/.../connections/.../repositories/...` resource with `--repository` instead of `--repo-owner` and `--repo-name`, and set the supported Cloud Build trigger region. Cloud Build documents both trigger forms and the branch pattern behavior in its [GitHub trigger reference](https://docs.cloud.google.com/sdk/gcloud/reference/builds/triggers/create/github).
 
-Before creating the trigger, verify the V1 project ID using the existing production serviceâ€™s project configuration; do not infer it from the repositoryâ€™s older example. Verify the V2 project, billing, region availability, GitHub connection, Firebase setup, service accounts, and the custom substitutions. The build itself checks that the V2 project is different from the supplied V1 project and that `asia-south1` is available for Cloud Run and Firestore.
+Before creating the trigger, verify V2 billing, region availability, GitHub connection, Firebase setup, service accounts, and the custom substitutions. The build checks that the V2 project is different from V1 and that `asia-south1` is available for Cloud Run and Firestore.
 
 ## Build and smoke check
 
