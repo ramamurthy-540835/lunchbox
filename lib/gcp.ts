@@ -99,6 +99,7 @@ export function isGcpConfigured() {
 }
 
 export async function persistOrder(order: OrderRecord) {
+  assertV2Isolation();
   if (!projectId || !bucketName) return { mode: "demo" as const, receiptUri: null };
 
   const storage = new Storage({ projectId });
@@ -153,3 +154,4 @@ export async function storeDeliveryProof(serviceDate: string, routeId: string, s
   });
   return `gs://${bucketName}/${objectName}`;
 }
+
